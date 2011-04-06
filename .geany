@@ -1,0 +1,43 @@
+
+[indentation]
+indent_width=4
+indent_type=1
+indent_hard_tab_width=8
+detect_indent=false
+indent_mode=2
+
+[project]
+name=mine3d
+base_path=/home/piotr/projekty/mine3d/
+description=
+
+[long line marker]
+long_line_behaviour=1
+long_line_column=72
+
+[files]
+current_page=7
+FILE_NAME_0=0;C;0;16;1;1;0;/home/piotr/projekty/mine3d/bool.h;0;4
+FILE_NAME_1=0;C;0;16;1;1;0;/home/piotr/projekty/mine3d/error.c;0;4
+FILE_NAME_2=0;C;0;16;1;1;0;/home/piotr/projekty/mine3d/error.h;0;4
+FILE_NAME_3=0;C;0;16;1;1;0;/home/piotr/projekty/mine3d/main.c;0;4
+FILE_NAME_4=0;C;0;16;1;1;0;/home/piotr/projekty/mine3d/math.h;0;4
+FILE_NAME_5=0;C;0;16;1;1;0;/home/piotr/projekty/mine3d/utils.c;0;4
+FILE_NAME_6=0;C;0;16;1;1;0;/home/piotr/projekty/mine3d/utils.h;0;4
+FILE_NAME_7=2961;C;0;16;1;1;0;/home/piotr/projekty/mine3d/world.c;0;4
+FILE_NAME_8=266;C;0;16;1;1;0;/home/piotr/projekty/mine3d/world.h;0;4
+
+[build-menu]
+NF_02_LB=Zbuduj _obiekt
+NF_02_CM=make
+NF_02_WD=
+EX_00_LB=_Execute
+EX_00_CM=make run
+EX_00_WD=
+CFT_00_LB=_Skompiluj
+CFT_00_CM=make
+CFT_00_WD=
+CFT_01_LB=Z_buduj
+CFT_01_CM=make
+CFT_01_WD=
+filetypes=C;

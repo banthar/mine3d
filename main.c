@@ -1,6 +1,7 @@
 
 #include "bool.h"
 #include "error.h"
+#include "world.h"
 
 #include <SDL.h>
 #include <glew.h>
@@ -43,21 +44,18 @@ void initVideo()
 
 }
 
-void quit()
+__attribute__((noreturn)) void quit()
 {
 	SDL_Quit();
 	exit(0);
 }
 
-
-
-void handleEvent(const SDL_Event* event)
+bool handleEvent(const SDL_Event* event)
 {
 	switch(event->type)
 	{
 		case SDL_QUIT:
 			quit();
-			break;
 		case SDL_KEYDOWN:
 			switch(event->key.keysym.sym)
 			{
@@ -65,73 +63,26 @@ void handleEvent(const SDL_Event* event)
 					grab_mouse=!grab_mouse;
 					fullscreen&=grab_mouse;
 					initVideo();
-					break;
+					return false;
 				case SDLK_F10:
 					quit();
-					break;
 				case SDLK_F11:
 					fullscreen=!fullscreen;
 					grab_mouse|=fullscreen;
 					initVideo();
-					break;
+					return false;
 				default:
-					break;
+					return true;
 			}
 			break;
 		case SDL_VIDEORESIZE:
 			window_rect=(SDL_Rect){0,0,event->resize.w,event->resize.h};
 			initVideo();
-			break;
-/*			
-		case SDL_MOUSEMOTION:
-			if(grab_mouse)
-			{
-				player.rotX-=event->motion.xrel/100.0;
-				player.rotY-=event->motion.yrel/100.0;
-				player.rotY=clampf(player.rotY,0,M_PI);
-			}
-			break;
-*/
+			return false;
 		default:
-			break;
+			return true;
 	}
 }
-
-int main(int argc, char* argv[])
-{
-
-	SDL_Init(SDL_INIT_VIDEO);
-
-	const SDL_VideoInfo* video_info=SDL_GetVideoInfo();
-	fullscreen_rect=(SDL_Rect){0,0,video_info->current_w,video_info->current_h};
-
-	initVideo();
-
-	if(glewInit()!=GLEW_OK)
-		panic("glew error");
-		
-	while(true)
-	{
-		
-		SDL_Event event;
-
-		while(SDL_PollEvent(&event))
-			handleEvent(&event);
-
-		//worldTick(&world);
-
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
-		//worldDraw(&world);
-
-		SDL_GL_SwapBuffers();
-		SDL_Delay(10);
-			
-	}
-		
-}
-
-/*
 
 int main(int argc, char* argv[])
 {
@@ -148,23 +99,28 @@ int main(int argc, char* argv[])
 
 	World world;
 	worldInit(&world);
-
+		
 	while(true)
 	{
-
+		
 		SDL_Event event;
 
 		while(SDL_PollEvent(&event))
-			handleEvent(&event);
+		{
+			if(handleEvent(&event))
+				worldEvent(&world,&event);
+		}
 
-		worldTick(*world);
+		worldTick(&world);
 
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
+		worldDraw(&world);
 
 		SDL_GL_SwapBuffers();
 		SDL_Delay(10);
-
+			
 	}
-
+		
 }
-*/
+

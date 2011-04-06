@@ -1,10 +1,8 @@
 
-#ifndef _UTILS_H_
-#define _UTILS_H_
+#pragma once
 
 #include <glew.h>
 
 GLuint loadTexture(const char* filename);
 
-#endif
 
