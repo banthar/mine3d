@@ -6,6 +6,7 @@
 
 #include <glew.h>
 #include <SDL.h>
+#include <pthread.h>
 
 #define SEGMENT_SIZE 16
 #define VIEW_RANGE 16
@@ -30,6 +31,7 @@ typedef struct
 	Vec4i scroll;
 	
 	GLuint terrain;
+	pthread_t thread;
 	
 }World;
 

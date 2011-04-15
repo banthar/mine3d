@@ -10,6 +10,7 @@
 #include <SDL.h>
 #include <glew.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 void init();
 void randomize();
@@ -60,16 +61,24 @@ void generateSegment(Segment* this, Vec4i pos)
 		
 		Vec4i l=pos*(Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}+(Vec4i){x,y,z};
 		
-		if(l[2]==perlin3D((Vec4i){l[0],l[1]}))
-			this->data[z][y][x]=256;
+		this->data[z][y][x]=noise3D(l)%1000==0;
+			
 		
 		
 	}
+	
 }
 
+void drawSegmentVBO(Segment* this)
+{
+	assert(this!=NULL);
+
+}
 
 void drawSegment(Segment* this)
 {
+
+	assert(this!=NULL);
 	
 	if(this->list==0)
 	{
@@ -98,19 +107,19 @@ void drawSegment(Segment* this)
 					{{1,0,0},{1,0,1},{1,1,1},{1,1,0}},
 				};
 
-				//int texCoord[][2]={
-				//	{0,0},{0,1},{1,1},{1,0},
-				//};
+				int texCoord[][2]={
+					{0,0},{0,1},{1,1},{1,0},
+				};
 
-				//int tileX=this->data[z][y][x]%TEXTURE_SIZE;
-				//int tileY=this->data[z][y][x]/TEXTURE_SIZE;
+				int tileX=this->data[z][y][x]%TEXTURE_SIZE;
+				int tileY=this->data[z][y][x]/TEXTURE_SIZE;
 
-				glColor3f(this->data[z][y][x]/16.0/16.0,this->data[z][y][x]/16.0/16.0,this->data[z][y][x]/16.0/16.0);
+				//glColor3f(this->data[z][y][x]/16.0/16.0,this->data[z][y][x]/16.0/16.0,this->data[z][y][x]/16.0/16.0);
 
 				for(int i=0;i<6;i++)
 				for(int v=0;v<4;v++)
 				{
-					//glTexCoord2f((texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE);
+					glTexCoord2f((texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE);
 					glVertex3i(x+pat[i][v][0],y+pat[i][v][1],  z+pat[i][v][2]);
 				}
 
@@ -137,7 +146,7 @@ void freeSegment(Segment* this)
 		return;
 	
 	if(this->list!=0)
-		 glDeleteLists(this->list,1);
+		glDeleteLists(this->list,1);
 		 
 	free(this);
 	
@@ -152,6 +161,7 @@ void worldInit(World *this)
 	
 	this->terrain=loadTexture("terrain.png");
 	assert(this->terrain!=0);
+
 
 }
 
@@ -205,17 +215,16 @@ void worldTick(World* this)
 	this->player.pos[0]-=-cos(this->player.rot[0])*vx*v;
 	this->player.pos[1]-=sin(this->player.rot[0])*vx*v;
 	
+
 	Vec4i scroll=
 	{
 		this->player.pos[0]/SEGMENT_SIZE-VIEW_RANGE/2,
 		this->player.pos[1]/SEGMENT_SIZE-VIEW_RANGE/2,
 		this->player.pos[2]/SEGMENT_SIZE-VIEW_RANGE/2,
 	};
-
+	
 	if(scroll[0]!=this->scroll[0] || scroll[1]!=this->scroll[1] || scroll[2]!=this->scroll[2])
 	{
-
-		puts("shift");
 		
 		Segment* segment[VIEW_RANGE][VIEW_RANGE][VIEW_RANGE]={};
 		Vec4i delta=scroll-this->scroll;
@@ -247,6 +256,7 @@ void worldTick(World* this)
 
 	}
 
+	int n=10;
 
 	for(int z=0;z<VIEW_RANGE;z++)
 	for(int y=0;y<VIEW_RANGE;y++)
@@ -256,9 +266,13 @@ void worldTick(World* this)
 		{
 			this->segment[z][y][x]=calloc(1,sizeof(Segment));
 			generateSegment(this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
-			//x=y=z=16;
+			
+			if(n--<0)
+				x=y=z=VIEW_RANGE;
+			
 		}
 	}
+
 	
 }
 
@@ -274,7 +288,7 @@ void worldDraw(World *this)
 
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_TEXTURE_2D);
+	glEnable(GL_TEXTURE_2D);
 	
 	glMatrixMode(GL_MODELVIEW);
 
