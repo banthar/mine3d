@@ -52,10 +52,11 @@ int perlin3D(Vec4i v)
 
 }
 
-void vboSegment(Segment* this);
+void vboSegment(World* world, Segment* this);
 
-void generateSegment(Segment* this, Vec4i pos)
+void generateSegment(World* world, Segment* segment, Vec4i pos)
 {
+
 	for(int z=0;z<SEGMENT_SIZE;z++)
 	for(int y=0;y<SEGMENT_SIZE;y++)
 	for(int x=0;x<SEGMENT_SIZE;x++)
@@ -63,18 +64,24 @@ void generateSegment(Segment* this, Vec4i pos)
 
 		Vec4i l=pos*(Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}+(Vec4i){x,y,z};
 
+		float scale=0.01;
+
+		float f=noise3(world->noise,(Vec4f){l[0],l[1],0,0}*(Vec4f){scale,scale,scale,scale});
+		//printf("%f\n",f);
+
 		//this->data[z][y][x]=noise3D(l)%1000==0;
-		this->data[z][y][x]=l[2]<rand()%10;
+		segment->data[z][y][x]=f*100>l[2];
 	
 	}
 
-	vboSegment(this);
+	vboSegment(world, segment);
 	
 }
 
 typedef struct
 {
 	Vec4i pos;
+	Vec4b color;
 	Vec2f texCoord;
 }Vertex;
 
@@ -86,7 +93,7 @@ int segmentGet(Segment* this, int x, int y, int z)
 		return this->data[z][y][x];
 }
 
-void vboSegment(Segment* this)
+void vboSegment(World* world, Segment* this)
 {
 
 	assert(this!=NULL);
@@ -123,14 +130,23 @@ void vboSegment(Segment* this)
 			static const int normal[6][3]={
 				{0,0,-1},
 				{0,0,1},
-				{0,1,0},
 				{0,-1,0},
-				{1,0,0},
+				{0,1,0},
 				{-1,0,0},
+				{1,0,0},
 			};
 
-			int tileX=this->data[z][y][x]%TEXTURE_SIZE;
-			int tileY=this->data[z][y][x]/TEXTURE_SIZE;
+			int tileX=(this->data[z][y][x]-1)%TEXTURE_SIZE;
+			int tileY=(this->data[z][y][x]-1)/TEXTURE_SIZE;
+
+			Vec4b colors[]={
+				{96,96,96},
+				{255,255,255},
+				{128,128,128},
+				{160,160,160},
+				{192,192,192},
+				{224,224,224},
+			};
 
 			for(int i=0;i<6;i++)
 			{
@@ -144,7 +160,8 @@ void vboSegment(Segment* this)
 				{
 					assert(n<max_vertices);
 					data[n].pos=(Vec4i){x+face[i][v][0],y+face[i][v][1],  z+face[i][v][2]};
-					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
+					data[n].color=colors[i];
+					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX+(i!=1))*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
 					n++;
 	/*
 					glTexCoord2f((texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE);
@@ -174,14 +191,23 @@ void drawSegment(Segment* this)
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
 	glVertexPointer(3, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex,pos));
+	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
 	glTexCoordPointer(2,GL_FLOAT,sizeof(Vertex), (void*)offsetof(Vertex,texCoord));
 
 	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glDrawArrays(GL_QUADS, 0, this->n);
 
 }
 
+static int allocated_segments=0;
+
+Segment* newSegment()
+{
+	allocated_segments++;
+	return calloc(1,sizeof(Segment));
+}
 
 void freeSegment(Segment* this)
 {
@@ -189,8 +215,10 @@ void freeSegment(Segment* this)
 	if(this==NULL)
 		return;
 	
+	allocated_segments--;
+
 	if(this->vbo!=0)
-		glDeleteBuffers(1,&this->list);
+		glDeleteBuffers(1,&this->vbo);
 		 
 	free(this);
 	
@@ -201,11 +229,28 @@ void worldInit(World *this)
 	
 	*this=(World){};
 	
+	this->noise=newNoise(time(NULL));
+
 	this->player.pos[2]=64.0;
 	
 	this->terrain=loadTexture("terrain.png");
 	assert(this->terrain!=0);
 
+
+}
+
+void worldDestroy(World* this)
+{
+	free(this->noise);
+
+	glDeleteTextures(1,&this->terrain);
+
+		for(int z=0;z<VIEW_RANGE;z++)
+		for(int y=0;y<VIEW_RANGE;y++)
+		for(int x=0;x<VIEW_RANGE;x++)
+		{
+			freeSegment(this->segment[z][y][x]);
+		}
 
 }
 
@@ -307,8 +352,8 @@ void worldTick(World* this)
 	{
 		if(this->segment[z][y][x]==NULL)
 		{
-			this->segment[z][y][x]=calloc(1,sizeof(Segment));
-			generateSegment(this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
+			this->segment[z][y][x]=newSegment();
+			generateSegment(this, this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
 			
 			if(SDL_GetTicks()-t>=10)
 				x=y=z=VIEW_RANGE;
@@ -316,8 +361,9 @@ void worldTick(World* this)
 		}
 	}
 
-	printf("%i\n",SDL_GetTicks()-t);
-	
+	printf("ticks: %i ",SDL_GetTicks()-t);
+	printf("segments: %i\n",allocated_segments);
+
 }
 
 void worldDraw(World *this)

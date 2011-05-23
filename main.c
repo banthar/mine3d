@@ -11,6 +11,7 @@ bool fullscreen=false;
 SDL_Rect window_rect={0,0,640,480};
 SDL_Rect fullscreen_rect;
 bool grab_mouse=false;
+World world;
 
 void grabMouse()
 {
@@ -46,6 +47,8 @@ void initVideo()
 
 __attribute__((noreturn)) void quit()
 {
+	puts("destroying world");
+	worldDestroy(&world);
 	SDL_Quit();
 	exit(0);
 }
@@ -97,7 +100,6 @@ int main(int argc, char* argv[])
 	if(glewInit()!=GLEW_OK)
 		panic("glew error");
 
-	World world;
 	worldInit(&world);
 		
 	while(true)
@@ -120,7 +122,6 @@ int main(int argc, char* argv[])
 		worldDraw(&world);
 
 		SDL_GL_SwapBuffers();
-		
 		
 		const int delay=30-SDL_GetTicks()+t;
 

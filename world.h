@@ -3,6 +3,7 @@
 
 #include "bool.h"
 #include "math.h"
+#include "snoise3.h"
 
 #include <glew.h>
 #include <SDL.h>
@@ -15,7 +16,6 @@
 typedef struct
 {
 	int data[SEGMENT_SIZE][SEGMENT_SIZE][SEGMENT_SIZE];
-	GLuint list;
 	GLuint vbo;
 	int n;
 }Segment;
@@ -35,9 +35,13 @@ typedef struct
 	GLuint terrain;
 	pthread_t thread;
 	
+	Noise* noise;
+
 }World;
 
 void worldInit(World* this);
+void worldDestroy(World* this);
 void worldTick(World* this);
 void worldDraw(World* this);
 bool worldEvent(World* this, const SDL_Event* event);
+
