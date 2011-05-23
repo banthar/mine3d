@@ -10,7 +10,7 @@ SDL_Surface* screen;
 bool fullscreen=false;
 SDL_Rect window_rect={0,0,640,480};
 SDL_Rect fullscreen_rect;
-bool grab_mouse=true;
+bool grab_mouse=false;
 
 void grabMouse()
 {
@@ -111,6 +111,8 @@ int main(int argc, char* argv[])
 				worldEvent(&world,&event);
 		}
 
+		int t=SDL_GetTicks();
+
 		worldTick(&world);
 
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -118,7 +120,12 @@ int main(int argc, char* argv[])
 		worldDraw(&world);
 
 		SDL_GL_SwapBuffers();
-		SDL_Delay(10);
+		
+		
+		const int delay=30-SDL_GetTicks()+t;
+
+		if(delay>0)
+			SDL_Delay(delay);
 			
 	}
 		

@@ -16,6 +16,8 @@ typedef struct
 {
 	int data[SEGMENT_SIZE][SEGMENT_SIZE][SEGMENT_SIZE];
 	GLuint list;
+	GLuint vbo;
+	int n;
 }Segment;
 
 typedef struct

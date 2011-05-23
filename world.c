@@ -18,7 +18,7 @@ void draw();
 void drawSegment(Segment* this);
 Segment* loadSegment(int x, int y, int z);
 
-unsigned int noise3D(Vec4i v)
+static __attribute__ ((pure)) unsigned int noise3D(Vec4i v) 
 {
 	unsigned int s=0xcafebabeu;
 	
@@ -52,92 +52,136 @@ int perlin3D(Vec4i v)
 
 }
 
+void vboSegment(Segment* this);
+
 void generateSegment(Segment* this, Vec4i pos)
 {
 	for(int z=0;z<SEGMENT_SIZE;z++)
 	for(int y=0;y<SEGMENT_SIZE;y++)
 	for(int x=0;x<SEGMENT_SIZE;x++)
 	{
-		
+
 		Vec4i l=pos*(Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}+(Vec4i){x,y,z};
-		
-		this->data[z][y][x]=noise3D(l)%1000==0;
-			
-		
-		
+
+		//this->data[z][y][x]=noise3D(l)%1000==0;
+		this->data[z][y][x]=l[2]<rand()%10;
+	
 	}
+
+	vboSegment(this);
 	
 }
 
-void drawSegmentVBO(Segment* this)
+typedef struct
 {
+	Vec4i pos;
+	Vec2f texCoord;
+}Vertex;
+
+int segmentGet(Segment* this, int x, int y, int z)
+{
+	if(x<0 || y<0 || z<0 || x>=SEGMENT_SIZE || y>=SEGMENT_SIZE || z>=SEGMENT_SIZE)
+		return -1;
+	else
+		return this->data[z][y][x];
+}
+
+void vboSegment(Segment* this)
+{
+
 	assert(this!=NULL);
+
+	const int max_vertices=SEGMENT_SIZE*SEGMENT_SIZE*SEGMENT_SIZE*6*4;
+
+	Vertex data[max_vertices];
+
+	int n=0;
+
+	for(int z=0;z<SEGMENT_SIZE;z++)
+	for(int y=0;y<SEGMENT_SIZE;y++)
+	for(int x=0;x<SEGMENT_SIZE;x++)
+	{
+
+		if(this->data[z][y][x]!=0)
+		{
+
+			static const int face[6][4][3]={
+				{{0,0,0},{1,0,0},{1,1,0},{0,1,0}},
+				{{0,0,1},{0,1,1},{1,1,1},{1,0,1}},
+
+				{{0,0,0},{0,0,1},{1,0,1},{1,0,0}},
+				{{0,1,0},{1,1,0},{1,1,1},{0,1,1}},
+
+				{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
+				{{1,0,0},{1,0,1},{1,1,1},{1,1,0}},
+			};
+
+			static const int texCoord[4][2]={
+				{0,0},{0,1},{1,1},{1,0},
+			};
+
+			static const int normal[6][3]={
+				{0,0,-1},
+				{0,0,1},
+				{0,1,0},
+				{0,-1,0},
+				{1,0,0},
+				{-1,0,0},
+			};
+
+			int tileX=this->data[z][y][x]%TEXTURE_SIZE;
+			int tileY=this->data[z][y][x]/TEXTURE_SIZE;
+
+			for(int i=0;i<6;i++)
+			{
+				
+				if(segmentGet(this,x+normal[i][0],y+normal[i][1],z+normal[i][2])==1)
+					continue;
+				
+				//data[n].pos=(Vec4i){x+pat[i][v][0],y+pat[i][v][1],  z+pat[i][v][2]};				
+				
+				for(int v=0;v<4;v++)
+				{
+					assert(n<max_vertices);
+					data[n].pos=(Vec4i){x+face[i][v][0],y+face[i][v][1],  z+face[i][v][2]};
+					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
+					n++;
+	/*
+					glTexCoord2f((texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE);
+					glVertex3i(x+pat[i][v][0],y+pat[i][v][1],  z+pat[i][v][2]);
+	*/
+				}
+			}
+
+		}
+	}
+
+
+	
+
+	this->n=n;
+	glGenBuffers(1,&this->vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(*data)*n, data, GL_STATIC_DRAW);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 
 }
 
 void drawSegment(Segment* this)
 {
 
-	assert(this!=NULL);
-	
-	if(this->list==0)
-	{
+	glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+	glVertexPointer(3, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex,pos));
+	glTexCoordPointer(2,GL_FLOAT,sizeof(Vertex), (void*)offsetof(Vertex,texCoord));
 
-		this->list=glGenLists(1);
-		glNewList(this->list, GL_COMPILE);
-		
-		glBegin(GL_QUADS);
-
-		for(int z=0;z<SEGMENT_SIZE;z++)
-		for(int y=0;y<SEGMENT_SIZE;y++)
-		for(int x=0;x<SEGMENT_SIZE;x++)
-		{
-
-			if(this->data[z][y][x]!=0)
-			{
-
-				int pat[6][4][3]={
-					{{0,0,0},{1,0,0},{1,1,0},{0,1,0}},
-					{{0,0,1},{0,1,1},{1,1,1},{1,0,1}},
-
-					{{0,0,0},{0,0,1},{1,0,1},{1,0,0}},
-					{{0,1,0},{1,1,0},{1,1,1},{0,1,1}},
-
-					{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
-					{{1,0,0},{1,0,1},{1,1,1},{1,1,0}},
-				};
-
-				int texCoord[][2]={
-					{0,0},{0,1},{1,1},{1,0},
-				};
-
-				int tileX=this->data[z][y][x]%TEXTURE_SIZE;
-				int tileY=this->data[z][y][x]/TEXTURE_SIZE;
-
-				//glColor3f(this->data[z][y][x]/16.0/16.0,this->data[z][y][x]/16.0/16.0,this->data[z][y][x]/16.0/16.0);
-
-				for(int i=0;i<6;i++)
-				for(int v=0;v<4;v++)
-				{
-					glTexCoord2f((texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE);
-					glVertex3i(x+pat[i][v][0],y+pat[i][v][1],  z+pat[i][v][2]);
-				}
-
-			}
-		}
-
-		glEnd();
-		glEndList();
-	}
-
-	glCallList(this->list);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDrawArrays(GL_QUADS, 0, this->n);
 
 }
 
-Segment* loadSegment(int x, int y, int z)
-{
-	return NULL;
-}
 
 void freeSegment(Segment* this)
 {
@@ -145,8 +189,8 @@ void freeSegment(Segment* this)
 	if(this==NULL)
 		return;
 	
-	if(this->list!=0)
-		glDeleteLists(this->list,1);
+	if(this->vbo!=0)
+		glDeleteBuffers(1,&this->list);
 		 
 	free(this);
 	
@@ -185,7 +229,8 @@ bool worldEvent(World* this, const SDL_Event* event)
 
 void worldTick(World* this)
 {
-	
+
+	int t=SDL_GetTicks();	
 	Uint8 *keys = SDL_GetKeyState(NULL);
 
 	double vx=0,vy=0;
@@ -256,8 +301,6 @@ void worldTick(World* this)
 
 	}
 
-	int n=10;
-
 	for(int z=0;z<VIEW_RANGE;z++)
 	for(int y=0;y<VIEW_RANGE;y++)
 	for(int x=0;x<VIEW_RANGE;x++)
@@ -267,17 +310,19 @@ void worldTick(World* this)
 			this->segment[z][y][x]=calloc(1,sizeof(Segment));
 			generateSegment(this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
 			
-			if(n--<0)
+			if(SDL_GetTicks()-t>=10)
 				x=y=z=VIEW_RANGE;
 			
 		}
 	}
 
+	printf("%i\n",SDL_GetTicks()-t);
 	
 }
 
 void worldDraw(World *this)
 {
+
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	
@@ -310,3 +355,4 @@ void worldDraw(World *this)
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 }
+

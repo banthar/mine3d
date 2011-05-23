@@ -5,10 +5,10 @@ HEADERS:=*.h
 PACKAGES:=sdl glew
 
 LIBS:=-lGL -lm -lSDL_image -lpthread
-CFLAGS:=-std=c99 -O3 -Wall 
+CFLAGS:=-std=c99 -Wall -O4
 
 CC:=gcc-4.6
-CC:=llvm-clang
+#CC:=llvm-clang
 
 main: $(SOURCES) $(HEADERS) Makefile
 		$(CC) `pkg-config --libs --cflags $(PACKAGES)` $(CFLAGS) $(LIBS) $(SOURCES) -o main
