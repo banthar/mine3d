@@ -62,15 +62,24 @@ void generateSegment(World* world, Segment* segment, Vec4i pos)
 		
 		Vec4f xy=(Vec4f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE};
 
-		float height=noise3(world->noise,xy*(Vec4f){0.01,0.02,0.01,0.01})*50;
+		float height=noise3(world->noise,xy*(Vec4f){0.01,0.01,0.01,0.01})*50;
 		height+=noise3(world->noise,xy*(Vec4f){0.1,0.1,0.1,0.1})*5;
+		height+=noise3(world->noise,xy*(Vec4f){0.001,0.001,0.001,0.001})*100;
 
 		for(int z=0;z<SEGMENT_SIZE;z++)
 		{
 
-			Vec4i xyz=pos*(Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}+(Vec4i){x,y,z};
+			Vec4f xyz=(Vec4f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE,z+pos[2]*SEGMENT_SIZE};
 
-			segment->data[z][y][x]=height>xyz[2];
+			if(height>xyz[2])
+			{
+				if(noise3(world->noise,xyz*(Vec4f){0.01,0.01,0.01,0.01})>0.1)
+					segment->data[z][y][x]=2;
+			}
+			else
+			{
+				segment->data[z][y][x]=0;
+			}
 	
 		}
 	}
@@ -102,17 +111,16 @@ int worldGet(World* this, Vec4i pos)
 
 	for(int i=0;i<3;i++)
 		if(global[i]<0 || global[i]>=VIEW_RANGE)
-			return 1;
+			return 0;
 
 	Segment* segment=this->segment[global[2]][global[1]][global[0]];
 
 	if(segment==NULL)
-		return 1;
+		return 0;
 
 	Vec4i local=pos&segment_mask;
 
 	return segment->data[local[2]][local[1]][local[0]];
-
 
 }
 
@@ -142,15 +150,15 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 				{{0,0,0},{1,0,0},{1,1,0},{0,1,0}},
 				{{0,0,1},{0,1,1},{1,1,1},{1,0,1}},
 
-				{{0,0,0},{0,0,1},{1,0,1},{1,0,0}},
+				{{1,0,0},{0,0,0},{0,0,1},{1,0,1}},
 				{{0,1,0},{1,1,0},{1,1,1},{0,1,1}},
 
 				{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
-				{{1,0,0},{1,0,1},{1,1,1},{1,1,0}},
+				{{1,1,0},{1,0,0},{1,0,1},{1,1,1}},
 			};
 
 			static const int texCoord[4][2]={
-				{0,0},{0,1},{1,1},{1,0},
+				{0,0},{1,0},{1,1},{0,1},
 			};
 
 			static const Vec4i normal[6]={
@@ -185,7 +193,7 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 					assert(n<max_vertices);
 					data[n].pos=loc+face[i][v];
 					data[n].color=colors[i];
-					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX+(i!=1))*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
+					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
 					//data[n].texCoord=(Vec2s){texCoord[v][0],texCoord[v][1]};
 					n++;
 				}
@@ -226,7 +234,7 @@ void drawSegment(World* world, Segment* this, Vec4i pos)
 		glDrawArrays(GL_QUADS, 0, this->n);
 
 	}
-	else if(false && (this==NULL || this->rendered==false))
+	else if( false && (this==NULL || this->rendered==false))
 	{
 
 		static const Vec4i faces[6][4]={
@@ -291,8 +299,6 @@ void worldInit(World *this)
 	
 	this->noise=newNoise(time(NULL));
 
-	this->player.pos[2]=64.0;
-	
 	this->terrain=loadTexture("terrain.png");
 	assert(this->terrain!=0);
 
@@ -317,7 +323,7 @@ void worldDestroy(World* this)
 static inline void worldSpiral(World* this, void (f)(int x,int y,int z))
 {
 	
-	int c=VIEW_RANGE/2-1;
+	int c=VIEW_RANGE/2;
 	
 	for(int r=0;r<c;r++)
 	for(int y=-r;y<r;y++)
@@ -330,7 +336,7 @@ static inline void worldSpiral(World* this, void (f)(int x,int y,int z))
 		}
 		else
 		{
-			f(c+x,c+y,c+r);
+			f(c+x,c+y,c+r-1);
 			f(c+x,c+y,c-r);
 		}
 	}
@@ -391,8 +397,13 @@ void worldTick(World* this)
 
 	this->player.pos[0]-=-cos(this->player.rot[0])*vx*v;
 	this->player.pos[1]-=sin(this->player.rot[0])*vx*v;
-	
 
+	while(worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]-3})!=0)
+	{
+		printf("%i\n",worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]}));
+		this->player.pos[2]+=1.0;
+	}
+	
 	Vec4i scroll=
 	{
 		this->player.pos[0]/SEGMENT_SIZE-VIEW_RANGE/2,
