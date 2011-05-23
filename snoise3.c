@@ -36,7 +36,7 @@ Noise* newNoise(uint64_t seed)
 	for(int i = 0; i < 256; ++i)
 	{
 		nc->perm[i] = rand_r(&s);
-		nc->mperm[i] = nc->perm[i] % 12;
+		nc->mperm[i] = nc->perm[i]&0xf ;//&0xf;//% 12;
 	}
   
 	return nc;

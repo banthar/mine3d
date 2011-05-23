@@ -62,7 +62,7 @@ void generateSegment(World* world, Segment* segment, Vec4i pos)
 		
 		Vec4f xy=(Vec4f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE};
 
-		float height=noise3(world->noise,xy*(Vec4f){0.01,0.01,0.01,0.01})*50;
+		float height=noise3(world->noise,xy*(Vec4f){0.01,0.02,0.01,0.01})*50;
 		height+=noise3(world->noise,xy*(Vec4f){0.1,0.1,0.1,0.1})*5;
 
 		for(int z=0;z<SEGMENT_SIZE;z++)
@@ -186,6 +186,7 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 					data[n].pos=loc+face[i][v];
 					data[n].color=colors[i];
 					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX+(i!=1))*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
+					//data[n].texCoord=(Vec2s){texCoord[v][0],texCoord[v][1]};
 					n++;
 				}
 			}
@@ -313,6 +314,29 @@ void worldDestroy(World* this)
 
 }
 
+static inline void worldSpiral(World* this, void (f)(Vec4i pos))
+{
+	
+	int c=VIEW_RANGE/2;
+	
+	for(int r=0;r<c;r++)
+	for(int y=-r;y<r;y++)
+	for(int x=-r;x<r;x++)
+	{
+		if(y==-r || x==-r || y==r-1 || x==r-1)
+		{
+			for(int z=-r;z<r;z++)
+				f((Vec4i){c+x,c+y,c+z});
+		}
+		else
+		{
+			f((Vec4i){c+x,c+y,c+r});
+			f((Vec4i){c+x,c+y,c-r});
+		}
+	}
+	
+}
+
 bool worldEvent(World* this, const SDL_Event* event)
 {
 	
@@ -356,12 +380,11 @@ void worldTick(World* this)
 	{
 		vx+=1;
 	}
-
 	if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
 	{
-		v=2.5;
+		v=0.1;
 	}
-
+	
 	this->player.pos[0]-=sin(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
 	this->player.pos[1]-=cos(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
 	this->player.pos[2]-=cos(this->player.rot[1])*vy*v;
@@ -409,7 +432,7 @@ void worldTick(World* this)
 		this->scroll=scroll;
 
 	}
-
+/*
 	//for(int r=0;r<VIEW_RANGE/2;r++)
 	for(int z=0;z<VIEW_RANGE;z++)
 	for(int y=0;y<VIEW_RANGE;y++)
@@ -429,9 +452,11 @@ void worldTick(World* this)
 			
 		}
 	}
+*/
 
 	printf("ticks: %i ",SDL_GetTicks()-t);
-	printf("segments: %i\n",allocated_segments);
+	printf("segments: %i ",allocated_segments);
+	printf("player: %f %f %f\n",this->player.pos[0],this->player.pos[1],this->player.pos[2]);
 
 }
 
@@ -446,7 +471,7 @@ void worldDraw(World *this)
 	glRotatef(this->player.rot[1]*180/M_PI,1,0,0);
 	glRotatef(this->player.rot[0]*180/M_PI,0,0,1);
 
-	glTranslatef(-this->player.pos[0],-this->player.pos[1],-this->player.pos[2]);
+	glTranslated(-this->player.pos[0],-this->player.pos[1],-this->player.pos[2]);
 
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
@@ -456,27 +481,33 @@ void worldDraw(World *this)
 
 	glBindTexture(GL_TEXTURE_2D, this->terrain);
 
-	//for(int r=0;r<VIEW_RANGE/2;r++)
+	for(int r=0;r<VIEW_RANGE/2;r++)
 	for(int z=1;z<VIEW_RANGE-1;z++)
 	for(int y=1;y<VIEW_RANGE-1;y++)
 	for(int x=1;x<VIEW_RANGE-1;x++)
 	{
 
-		//if(max3(abs(x-VIEW_RANGE/2),abs(y-VIEW_RANGE/2),abs(z-VIEW_RANGE/2))!=r)
-			//continue;
+		if(max3(abs(x-VIEW_RANGE/2),abs(y-VIEW_RANGE/2),abs(z-VIEW_RANGE/2))!=r)
+			continue;
+
+		if(SDL_GetTicks()-t>25)
+		{
+			x=y=z=r=VIEW_RANGE;
+			break;
+		}
 
 		Vec4i pos=(Vec4i){x,y,z}+this->scroll;
-/*
-		if(this->segment[z][y][x]==NULL && SDL_GetTicks()-t<1)
+
+		if(this->segment[z][y][x]==NULL && SDL_GetTicks()-t<10)
 		{
 			this->segment[z][y][x]=newSegment();
 			generateSegment(this, this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
 		}
-*/
+
 		if(
 			this->segment[z][y][x]!=NULL &&
 			this->segment[z][y][x]->rendered==false &&
-			SDL_GetTicks()-t<10 &&
+			SDL_GetTicks()-t<20 &&
 
 			this->segment[z+1][y][x]!=NULL &&
 			this->segment[z-1][y][x]!=NULL &&
