@@ -5,7 +5,7 @@ HEADERS:=*.h
 PACKAGES:=sdl glew
 
 LIBS:=-lGL -lm -lSDL_image -lpthread
-CFLAGS:=-std=gnu99 -Wall -O4 -ffast-math
+CFLAGS:=-std=gnu99 -Wall  -ffast-math -g
 
 CC:=gcc-4.6
 #CC:=llvm-clang

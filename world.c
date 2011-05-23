@@ -15,7 +15,6 @@
 void init();
 void randomize();
 void draw();
-void drawSegment(Segment* this);
 Segment* loadSegment(int x, int y, int z);
 
 static __attribute__ ((pure)) unsigned int noise3D(Vec4i v) 
@@ -63,20 +62,19 @@ void generateSegment(World* world, Segment* segment, Vec4i pos)
 		
 		Vec4f xy=(Vec4f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE};
 
-		float height=noise3(world->noise,xy*(Vec4f){0.01,0.01,0.01,0.01});
+		float height=noise3(world->noise,xy*(Vec4f){0.01,0.01,0.01,0.01})*50;
+		height+=noise3(world->noise,xy*(Vec4f){0.1,0.1,0.1,0.1})*5;
 
 		for(int z=0;z<SEGMENT_SIZE;z++)
 		{
 
 			Vec4i xyz=pos*(Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}+(Vec4i){x,y,z};
 
-			segment->data[z][y][x]=height*100>xyz[2];
+			segment->data[z][y][x]=height>xyz[2];
 	
 		}
 	}
 
-	vboSegment(world, segment, pos);
-	
 }
 
 typedef struct
@@ -118,10 +116,8 @@ int worldGet(World* this, Vec4i pos)
 
 }
 
-void vboSegment(World* world, Segment* this, Vec4i pos)
+void renderSegment(World* world, Segment* this, Vec4i pos)
 {
-
-	Vec4i segment_size=(Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE};
 
 	assert(this!=NULL);
 
@@ -136,7 +132,7 @@ void vboSegment(World* world, Segment* this, Vec4i pos)
 	for(int x=0;x<SEGMENT_SIZE;x++)
 	{
 
-		Vec4i loc=pos*segment_size+(Vec4i){x,y,z};
+		Vec4i loc=pos*SEGMENT_SIZEV+(Vec4i){x,y,z};
 
 		//if(worldGet(world,loc)!=0)
 		if(this->data[z][y][x]!=0)
@@ -178,13 +174,10 @@ void vboSegment(World* world, Segment* this, Vec4i pos)
 			int tileX=(this->data[z][y][x]-1)%TEXTURE_SIZE;
 			int tileY=(this->data[z][y][x]-1)/TEXTURE_SIZE;
 
-
-
 			for(int i=0;i<6;i++)
 			{
 			
-				
-				if(worldGet(world,loc+normal[i]) == 1)
+				if(worldGet(world,loc+normal[i]) != 0)
 					continue;
 				
 				for(int v=0;v<4;v++)
@@ -200,7 +193,7 @@ void vboSegment(World* world, Segment* this, Vec4i pos)
 		}
 	}
 
-	//this->rendered=true;
+	this->rendered=true;
 
 	if(n==0)
 		return;
@@ -215,20 +208,55 @@ void vboSegment(World* world, Segment* this, Vec4i pos)
 
 }
 
-void drawSegment(Segment* this)
+void drawSegment(World* world, Segment* this, Vec4i pos)
 {
 
-	glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-	glVertexPointer(3, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex,pos));
-	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
-	glTexCoordPointer(2,GL_FLOAT,sizeof(Vertex), (void*)offsetof(Vertex,texCoord));
+	if(this!=NULL && this->rendered && this->vbo!=0)
+	{
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glDrawArrays(GL_QUADS, 0, this->n);
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+		glVertexPointer(3, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex,pos));
+		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+		glTexCoordPointer(2,GL_FLOAT,sizeof(Vertex), (void*)offsetof(Vertex,texCoord));
 
-	assert(!glGetError());
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_COLOR_ARRAY);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		glDrawArrays(GL_QUADS, 0, this->n);
+
+	}
+	else if(false && (this==NULL || this->rendered==false))
+	{
+
+		static const Vec4i faces[6][4]={
+			{{0,0,0},{1,0,0},{1,1,0},{0,1,0}},
+			{{0,0,1},{0,1,1},{1,1,1},{1,0,1}},
+
+			{{0,0,0},{0,0,1},{1,0,1},{1,0,0}},
+			{{0,1,0},{1,1,0},{1,1,1},{0,1,1}},
+
+			{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
+			{{1,0,0},{1,0,1},{1,1,1},{1,1,0}},
+		};
+
+		glBegin(GL_LINES);
+		for(int face=0;face<6;face++)
+		for(int vert=0;vert<4;vert++)
+		{
+			Vec4i v=(pos+faces[face][vert])*SEGMENT_SIZEV;
+			if(this==NULL)
+				glColor3f(1.0,0.0,0.0);
+			else if(this->rendered==false)
+				glColor3f(1.0,1.0,0.0);
+			else
+				glColor3f(0.0,1.0,0.0);
+				
+			glVertex3i(v[0],v[1],v[2]);
+		}
+
+		glEnd();
+
+	}
 
 }
 
@@ -276,12 +304,12 @@ void worldDestroy(World* this)
 
 	glDeleteTextures(1,&this->terrain);
 
-		for(int z=0;z<VIEW_RANGE;z++)
-		for(int y=0;y<VIEW_RANGE;y++)
-		for(int x=0;x<VIEW_RANGE;x++)
-		{
-			freeSegment(this->segment[z][y][x]);
-		}
+	for(int z=0;z<VIEW_RANGE;z++)
+	for(int y=0;y<VIEW_RANGE;y++)
+	for(int x=0;x<VIEW_RANGE;x++)
+	{
+		freeSegment(this->segment[z][y][x]);
+	}
 
 }
 
@@ -329,6 +357,11 @@ void worldTick(World* this)
 		vx+=1;
 	}
 
+	if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
+	{
+		v=2.5;
+	}
+
 	this->player.pos[0]-=sin(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
 	this->player.pos[1]-=cos(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
 	this->player.pos[2]-=cos(this->player.rot[1])*vy*v;
@@ -361,7 +394,7 @@ void worldTick(World* this)
 			int iy=y-delta[1];
 			int iz=z-delta[2];
 			
-			if(ix<0 || iy<0 || iz<0 || ix>=16 || iy>=16 || iz>=16)
+			if(ix<0 || iy<0 || iz<0 || ix>=VIEW_RANGE || iy>=VIEW_RANGE || iz>=VIEW_RANGE)
 			{
 				freeSegment(s);
 			}
@@ -377,16 +410,21 @@ void worldTick(World* this)
 
 	}
 
+	//for(int r=0;r<VIEW_RANGE/2;r++)
 	for(int z=0;z<VIEW_RANGE;z++)
 	for(int y=0;y<VIEW_RANGE;y++)
 	for(int x=0;x<VIEW_RANGE;x++)
 	{
+
+		//if(max3(abs(x-VIEW_RANGE/2),abs(y-VIEW_RANGE/2),abs(z-VIEW_RANGE/2))!=r)
+			//continue;
+
 		if(this->segment[z][y][x]==NULL)
 		{
 			this->segment[z][y][x]=newSegment();
 			generateSegment(this, this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
 			
-			if(SDL_GetTicks()-t>=10)
+			if(SDL_GetTicks()-t>=5)
 				x=y=z=VIEW_RANGE;
 			
 		}
@@ -399,6 +437,8 @@ void worldTick(World* this)
 
 void worldDraw(World *this)
 {
+
+	int t=SDL_GetTicks();
 
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -416,17 +456,52 @@ void worldDraw(World *this)
 
 	glBindTexture(GL_TEXTURE_2D, this->terrain);
 
-	for(int z=0;z<VIEW_RANGE;z++)
-	for(int y=0;y<VIEW_RANGE;y++)
-	for(int x=0;x<VIEW_RANGE;x++)
+	//for(int r=0;r<VIEW_RANGE/2;r++)
+	for(int z=1;z<VIEW_RANGE-1;z++)
+	for(int y=1;y<VIEW_RANGE-1;y++)
+	for(int x=1;x<VIEW_RANGE-1;x++)
 	{
+
+		//if(max3(abs(x-VIEW_RANGE/2),abs(y-VIEW_RANGE/2),abs(z-VIEW_RANGE/2))!=r)
+			//continue;
+
+		Vec4i pos=(Vec4i){x,y,z}+this->scroll;
+/*
+		if(this->segment[z][y][x]==NULL && SDL_GetTicks()-t<1)
+		{
+			this->segment[z][y][x]=newSegment();
+			generateSegment(this, this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
+		}
+*/
+		if(
+			this->segment[z][y][x]!=NULL &&
+			this->segment[z][y][x]->rendered==false &&
+			SDL_GetTicks()-t<10 &&
+
+			this->segment[z+1][y][x]!=NULL &&
+			this->segment[z-1][y][x]!=NULL &&
+
+			this->segment[z][y+1][x]!=NULL &&
+			this->segment[z][y-1][x]!=NULL &&
+
+			this->segment[z][y][x+1]!=NULL &&
+			this->segment[z][y][x-1]!=NULL )
+		{
+			renderSegment(this, this->segment[z][y][x], pos);
+		}
+
+		drawSegment(this, this->segment[z][y][x], pos);
+
+/*
 		if(this->segment[z][y][x]!=NULL)
 		{
 			//glPushMatrix();
 			//glTranslatef((x+this->scroll[0])*SEGMENT_SIZE,(y+this->scroll[1])*SEGMENT_SIZE,(z+this->scroll[2])*SEGMENT_SIZE);
-			drawSegment(this->segment[z][y][x]);
+			drawSegment(this, this->segment[z][y][x], (Vec4i){x,y,z}+this->scroll);
 			//glPopMatrix();
 		}
+*/
+
 	}
 
 	glMatrixMode(GL_PROJECTION);

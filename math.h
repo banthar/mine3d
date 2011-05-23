@@ -4,6 +4,10 @@
 #define max(a,b) ((a)>(b)?(a):(b))
 #define min(a,b) ((a)>(b)?(b):(a))
 
+#define max3(a,b,c) max(a,max(b,c))
+#define min3(a,b,c) min(a,min(b,c))
+
+
 static inline double clampf(double v, double min, double max)
 {
 	if(v<min)
