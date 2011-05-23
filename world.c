@@ -314,10 +314,10 @@ void worldDestroy(World* this)
 
 }
 
-static inline void worldSpiral(World* this, void (f)(Vec4i pos))
+static inline void worldSpiral(World* this, void (f)(int x,int y,int z))
 {
 	
-	int c=VIEW_RANGE/2;
+	int c=VIEW_RANGE/2-1;
 	
 	for(int r=0;r<c;r++)
 	for(int y=-r;y<r;y++)
@@ -326,12 +326,12 @@ static inline void worldSpiral(World* this, void (f)(Vec4i pos))
 		if(y==-r || x==-r || y==r-1 || x==r-1)
 		{
 			for(int z=-r;z<r;z++)
-				f((Vec4i){c+x,c+y,c+z});
+				f(c+x,c+y,c+z);
 		}
 		else
 		{
-			f((Vec4i){c+x,c+y,c+r});
-			f((Vec4i){c+x,c+y,c-r});
+			f(c+x,c+y,c+r);
+			f(c+x,c+y,c-r);
 		}
 	}
 	
@@ -382,7 +382,7 @@ void worldTick(World* this)
 	}
 	if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
 	{
-		v=0.1;
+		v=0.01*this->player.pos[0];
 	}
 	
 	this->player.pos[0]-=sin(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
@@ -481,20 +481,15 @@ void worldDraw(World *this)
 
 	glBindTexture(GL_TEXTURE_2D, this->terrain);
 
-	for(int r=0;r<VIEW_RANGE/2;r++)
-	for(int z=1;z<VIEW_RANGE-1;z++)
-	for(int y=1;y<VIEW_RANGE-1;y++)
-	for(int x=1;x<VIEW_RANGE-1;x++)
+	void aux(int x, int y, int z)
 	{
 
-		if(max3(abs(x-VIEW_RANGE/2),abs(y-VIEW_RANGE/2),abs(z-VIEW_RANGE/2))!=r)
-			continue;
-
+		/*
 		if(SDL_GetTicks()-t>25)
 		{
 			x=y=z=r=VIEW_RANGE;
-			break;
-		}
+			return false;
+		}*/
 
 		Vec4i pos=(Vec4i){x,y,z}+this->scroll;
 
@@ -534,6 +529,8 @@ void worldDraw(World *this)
 */
 
 	}
+
+	worldSpiral(this,aux);
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
