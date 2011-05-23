@@ -9,7 +9,10 @@
 #include <SDL.h>
 #include <pthread.h>
 
-#define SEGMENT_SIZE 16
+#define SEGMENT_BITS 4
+#define SEGMENT_MASK ((1<<SEGMENT_BITS)-1)
+#define SEGMENT_SIZE (1<<SEGMENT_BITS)
+
 #define VIEW_RANGE 16
 #define TEXTURE_SIZE 16
 

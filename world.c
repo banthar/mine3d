@@ -94,8 +94,34 @@ int segmentGet(Segment* this, int x, int y, int z)
 		return this->data[z][y][x];
 }
 
+int worldGet(World* this, Vec4i pos)
+{
+
+	const Vec4i segment_bits=(Vec4i){SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS};
+	const Vec4i segment_mask=(Vec4i){SEGMENT_MASK,SEGMENT_MASK,SEGMENT_MASK,SEGMENT_MASK};
+
+	Vec4i global=(pos>>segment_bits)-this->scroll;
+
+	for(int i=0;i<3;i++)
+		if(global[i]<0 || global[i]>=VIEW_RANGE)
+			return 1;
+
+	Segment* segment=this->segment[global[2]][global[1]][global[0]];
+
+	if(segment==NULL)
+		return 1;
+
+	Vec4i local=pos&segment_mask;
+
+	return segment->data[local[2]][local[1]][local[0]];
+
+
+}
+
 void vboSegment(World* world, Segment* this, Vec4i pos)
 {
+
+	Vec4i segment_size=(Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE};
 
 	assert(this!=NULL);
 
@@ -110,10 +136,13 @@ void vboSegment(World* world, Segment* this, Vec4i pos)
 	for(int x=0;x<SEGMENT_SIZE;x++)
 	{
 
+		Vec4i loc=pos*segment_size+(Vec4i){x,y,z};
+
+		//if(worldGet(world,loc)!=0)
 		if(this->data[z][y][x]!=0)
 		{
 
-			static const int face[6][4][3]={
+			static const Vec4i face[6][4]={
 				{{0,0,0},{1,0,0},{1,1,0},{0,1,0}},
 				{{0,0,1},{0,1,1},{1,1,1},{1,0,1}},
 
@@ -128,7 +157,7 @@ void vboSegment(World* world, Segment* this, Vec4i pos)
 				{0,0},{0,1},{1,1},{1,0},
 			};
 
-			static const int normal[6][3]={
+			static const Vec4i normal[6]={
 				{0,0,-1},
 				{0,0,1},
 				{0,-1,0},
@@ -137,10 +166,7 @@ void vboSegment(World* world, Segment* this, Vec4i pos)
 				{1,0,0},
 			};
 
-			int tileX=(this->data[z][y][x]-1)%TEXTURE_SIZE;
-			int tileY=(this->data[z][y][x]-1)/TEXTURE_SIZE;
-
-			Vec4b colors[]={
+			static const Vec4b colors[]={
 				{96,96,96},
 				{255,255,255},
 				{128,128,128},
@@ -149,33 +175,35 @@ void vboSegment(World* world, Segment* this, Vec4i pos)
 				{224,224,224},
 			};
 
+			int tileX=(this->data[z][y][x]-1)%TEXTURE_SIZE;
+			int tileY=(this->data[z][y][x]-1)/TEXTURE_SIZE;
+
+
+
 			for(int i=0;i<6;i++)
 			{
+			
 				
-				if(segmentGet(this,x+normal[i][0],y+normal[i][1],z+normal[i][2])==1)
+				if(worldGet(world,loc+normal[i]) == 1)
 					continue;
-				
-				//data[n].pos=(Vec4i){x+pat[i][v][0],y+pat[i][v][1],  z+pat[i][v][2]};				
 				
 				for(int v=0;v<4;v++)
 				{
 					assert(n<max_vertices);
-					data[n].pos=(Vec4i){x+face[i][v][0],y+face[i][v][1],  z+face[i][v][2]};
+					data[n].pos=loc+face[i][v];
 					data[n].color=colors[i];
 					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX+(i!=1))*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
 					n++;
-	/*
-					glTexCoord2f((texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE);
-					glVertex3i(x+pat[i][v][0],y+pat[i][v][1],  z+pat[i][v][2]);
-	*/
 				}
 			}
 
 		}
 	}
 
+	//this->rendered=true;
 
-	
+	if(n==0)
+		return;
 
 	this->n=n;
 	glGenBuffers(1,&this->vbo);
@@ -199,6 +227,8 @@ void drawSegment(Segment* this)
 	glEnableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glDrawArrays(GL_QUADS, 0, this->n);
+
+	assert(!glGetError());
 
 }
 
@@ -392,10 +422,10 @@ void worldDraw(World *this)
 	{
 		if(this->segment[z][y][x]!=NULL)
 		{
-			glPushMatrix();
-			glTranslatef((x+this->scroll[0])*SEGMENT_SIZE,(y+this->scroll[1])*SEGMENT_SIZE,(z+this->scroll[2])*SEGMENT_SIZE);
+			//glPushMatrix();
+			//glTranslatef((x+this->scroll[0])*SEGMENT_SIZE,(y+this->scroll[1])*SEGMENT_SIZE,(z+this->scroll[2])*SEGMENT_SIZE);
 			drawSegment(this->segment[z][y][x]);
-			glPopMatrix();
+			//glPopMatrix();
 		}
 	}
 

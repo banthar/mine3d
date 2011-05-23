@@ -1,8 +1,6 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #define max(a,b) ((a)>(b)?(a):(b))
 #define min(a,b) ((a)>(b)?(b):(a))
 
@@ -16,11 +14,18 @@ static inline double clampf(double v, double min, double max)
 		return v;
 }
 
-typedef int Vec2i __attribute__ ((vector_size (2*sizeof(int))));
-typedef int Vec4i __attribute__ ((vector_size (4*sizeof(int))));
-typedef float Vec2f __attribute__ ((vector_size (2*sizeof(float))));
-typedef float Vec4f __attribute__ ((vector_size (4*sizeof(float))));
-typedef uint8_t Vec2b __attribute__ ((vector_size (2*sizeof(uint8_t))));
-typedef uint8_t Vec4b __attribute__ ((vector_size (4*sizeof(uint8_t))));
+#define VECTOR(type,size) type __attribute__ ((vector_size ((size)*sizeof(type))))
+
+typedef VECTOR(int,2) Vec2i;
+typedef VECTOR(int,4) Vec4i;
+
+typedef VECTOR(float,2) Vec2f;
+typedef VECTOR(float,4) Vec4f;
+
+typedef VECTOR(unsigned char,2) Vec2b;
+typedef VECTOR(unsigned char,4) Vec4b;
+
+typedef VECTOR(short,2) Vec2s;
+typedef VECTOR(short,4) Vec4s;
 
 
