@@ -52,29 +52,30 @@ int perlin3D(Vec4i v)
 
 }
 
-void vboSegment(World* world, Segment* this);
+void vboSegment(World* world, Segment* this, Vec4i pos);
 
 void generateSegment(World* world, Segment* segment, Vec4i pos)
 {
 
-	for(int z=0;z<SEGMENT_SIZE;z++)
 	for(int y=0;y<SEGMENT_SIZE;y++)
 	for(int x=0;x<SEGMENT_SIZE;x++)
 	{
+		
+		Vec4f xy=(Vec4f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE};
 
-		Vec4i l=pos*(Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}+(Vec4i){x,y,z};
+		float height=noise3(world->noise,xy*(Vec4f){0.01,0.01,0.01,0.01});
 
-		float scale=0.01;
+		for(int z=0;z<SEGMENT_SIZE;z++)
+		{
 
-		float f=noise3(world->noise,(Vec4f){l[0],l[1],0,0}*(Vec4f){scale,scale,scale,scale});
-		//printf("%f\n",f);
+			Vec4i xyz=pos*(Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}+(Vec4i){x,y,z};
 
-		//this->data[z][y][x]=noise3D(l)%1000==0;
-		segment->data[z][y][x]=f*100>l[2];
+			segment->data[z][y][x]=height*100>xyz[2];
 	
+		}
 	}
 
-	vboSegment(world, segment);
+	vboSegment(world, segment, pos);
 	
 }
 
@@ -93,7 +94,7 @@ int segmentGet(Segment* this, int x, int y, int z)
 		return this->data[z][y][x];
 }
 
-void vboSegment(World* world, Segment* this)
+void vboSegment(World* world, Segment* this, Vec4i pos)
 {
 
 	assert(this!=NULL);
