@@ -2,6 +2,7 @@
 #include "bool.h"
 #include "error.h"
 #include "world.h"
+#include "utils.h"
 
 #include <SDL.h>
 #include <glew.h>
@@ -12,6 +13,7 @@ SDL_Rect window_rect={0,0,640,480};
 SDL_Rect fullscreen_rect;
 bool grab_mouse=false;
 World world;
+GLuint screen_texture;
 
 void grabMouse()
 {
@@ -100,6 +102,14 @@ int main(int argc, char* argv[])
 	if(glewInit()!=GLEW_OK)
 		panic("glew error");
 
+	screen_texture=emptyTexture(1,1);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	//screen_texture=loadTexture("terrain.png");
+
+	glEnable (GL_BLEND);
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		
 	worldInit(&world);
 		
 	while(true)
@@ -122,7 +132,32 @@ int main(int argc, char* argv[])
 
 		worldDraw(&world);
 
+		glBindTexture(GL_TEXTURE_2D,screen_texture);
+		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, screen->w, screen->h, 0);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+
+
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		//glViewport(0,0,screen->w,screen->h);
+		//glScalef(1.01,1.01,1.01);
+		//glRotatef(1,0,0,1);
+		glBegin(GL_QUADS);
+		glTexCoord2f(0,0); glColor4f(1.0,1.0,1.0,1.0); glVertex2f(-1,-1);
+		glTexCoord2f(1,0); glColor4f(1.0,1.0,1.0,1.0); glVertex2f( 1,-1);
+		glTexCoord2f(1,1); glColor4f(1.0,1.0,1.0,1.0); glVertex2f( 1, 1);
+		glTexCoord2f(0,1); glColor4f(1.0,1.0,1.1,1.0); glVertex2f(-1, 1);
+		glEnd();
+		glPopMatrix();
+		
+		//glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, screen->w, screen->h, 0);
+		//glGenerateMipmap(GL_TEXTURE_2D);
+		
 		SDL_GL_SwapBuffers();
+		
+		assert(glGetError()==0);
 		
 		const int delay=30-SDL_GetTicks()+t;
 

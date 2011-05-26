@@ -3,7 +3,7 @@
 
 #include "bool.h"
 #include "math.h"
-#include "snoise3.h"
+#include "noise.h"
 
 #include <glew.h>
 #include <SDL.h>
@@ -41,7 +41,7 @@ typedef struct
 	GLuint terrain;
 	pthread_t thread;
 	
-	Noise* noise;
+	Noise noise;
 
 }World;
 

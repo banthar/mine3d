@@ -1,6 +1,6 @@
 
-SOURCES:=*.c
-HEADERS:=*.h
+SOURCES:=error.c  main.c  noise.c utils.c  world.c
+HEADERS:=bool.h error.h  math.h  noise.h  utils.h  world.h
 
 PACKAGES:=sdl glew
 

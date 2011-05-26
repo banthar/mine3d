@@ -3,8 +3,7 @@
 #include "utils.h"
 #include "error.h"
 #include "bool.h"
-
-#include "bool.h"
+#include "noise.h"
 
 #include <math.h>
 #include <SDL.h>
@@ -17,41 +16,7 @@ void randomize();
 void draw();
 Segment* loadSegment(int x, int y, int z);
 
-static __attribute__ ((pure)) unsigned int noise3D(Vec4i v) 
-{
-	unsigned int s=0xcafebabeu;
-	
-	s^=v[0]^v[1]^v[2];
-	
-	for(int i=0;i<8;i++)
-	{
-		s+=(unsigned int)v[s%4];
-		s=s*2971215073u;
-		s+=11u;
-		s=(s>>16u)^(s<<16u);
-	}
-	
-	
-	return s;
-}
-
-int perlin3D(Vec4i v)
-{
-
-	int s=0;
-	
-	for(int i=0;i<8;i++)
-	{
-		int n=1<<i;
-		s+=noise3D(v/(Vec4i){n,n,n,n})/256;
-		s/=2;
-	}
-	
-	return s/256/256;
-
-}
-
-void vboSegment(World* world, Segment* this, Vec4i pos);
+//void vboSegment(World* world, Segment* this, Vec4i pos);
 
 void generateSegment(World* world, Segment* segment, Vec4i pos)
 {
@@ -60,11 +25,11 @@ void generateSegment(World* world, Segment* segment, Vec4i pos)
 	for(int x=0;x<SEGMENT_SIZE;x++)
 	{
 		
-		Vec4f xy=(Vec4f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE};
+		Vec2f xy=(Vec2f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE};
 
-		float height=noise3(world->noise,xy*(Vec4f){0.01,0.01,0.01,0.01})*50;
-		height+=noise3(world->noise,xy*(Vec4f){0.1,0.1,0.1,0.1})*5;
-		height+=noise3(world->noise,xy*(Vec4f){0.001,0.001,0.001,0.001})*100;
+		float height=noise2(&world->noise,xy*(Vec2f){0.01,0.01})*50;
+		height+=noise2(&world->noise,xy*(Vec2f){0.1,0.1})*5;
+		height+=noise2(&world->noise,xy*(Vec2f){0.001,0.001})*100;
 
 		for(int z=0;z<SEGMENT_SIZE;z++)
 		{
@@ -73,7 +38,7 @@ void generateSegment(World* world, Segment* segment, Vec4i pos)
 
 			if(height>xyz[2])
 			{
-				if(noise3(world->noise,xyz*(Vec4f){0.01,0.01,0.01,0.01})>0.1)
+				//if(noise3(world->noise,xyz*(Vec4f){0.01,0.01,0.01,0.01})>0.1)
 					segment->data[z][y][x]=2;
 			}
 			else
@@ -171,12 +136,12 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 			};
 
 			static const Vec4b colors[]={
-				{96,96,96},
-				{255,255,255},
-				{128,128,128},
-				{160,160,160},
-				{192,192,192},
-				{224,224,224},
+				{96,96,96,255},
+				{255,255,255,255},
+				{128,128,128,255},
+				{224,224,224,255},
+				{192,192,192,255},
+				{160,160,160,255},
 			};
 
 			int tileX=(this->data[z][y][x]-1)%TEXTURE_SIZE;
@@ -194,7 +159,7 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 					data[n].pos=loc+face[i][v];
 					data[n].color=colors[i];
 					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
-					//data[n].texCoord=(Vec2s){texCoord[v][0],texCoord[v][1]};
+					//data[n].texCoord=(Vec2f){texCoord[v][0],texCoord[v][1]};
 					n++;
 				}
 			}
@@ -297,17 +262,18 @@ void worldInit(World *this)
 	
 	*this=(World){};
 	
-	this->noise=newNoise(time(NULL));
+	noiseInit(&this->noise,666);
 
 	this->terrain=loadTexture("terrain.png");
 	assert(this->terrain!=0);
+
+	this->player.pos[2]=76.0;
 
 
 }
 
 void worldDestroy(World* this)
 {
-	free(this->noise);
 
 	glDeleteTextures(1,&this->terrain);
 
@@ -398,11 +364,13 @@ void worldTick(World* this)
 	this->player.pos[0]-=-cos(this->player.rot[0])*vx*v;
 	this->player.pos[1]-=sin(this->player.rot[0])*vx*v;
 
+/*
 	while(worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]-3})!=0)
 	{
 		printf("%i\n",worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]}));
 		this->player.pos[2]+=1.0;
 	}
+*/
 	
 	Vec4i scroll=
 	{
