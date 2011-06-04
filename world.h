@@ -9,7 +9,7 @@
 #include <SDL.h>
 #include <pthread.h>
 
-#define SEGMENT_BITS 4
+#define SEGMENT_BITS 5
 #define SEGMENT_MASK ((1<<SEGMENT_BITS)-1)
 #define SEGMENT_SIZE (1<<SEGMENT_BITS)
 #define SEGMENT_SIZEV (Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}

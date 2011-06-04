@@ -1,17 +1,20 @@
 
-SOURCES:=error.c  main.c  noise.c utils.c  world.c
+OBJECTS:=error.o  main.o  noise.o utils.o  world.o
 HEADERS:=bool.h error.h  math.h  noise.h  utils.h  world.h
 
-PACKAGES:=sdl glew
+PACKAGES:=sdl glew sdl-image gl
 
-LIBS:=-lGL -lm -lSDL_image -lpthread
-CFLAGS:=-std=gnu99 -Wall -march=native -ffast-math -g
+LIBS:=-lm -lpthread `pkg-config --libs $(PACKAGES)`
+CFLAGS:=-std=gnu99 -Wall -march=native -ffast-math `pkg-config --cflags $(PACKAGES)`
 
 CC:=gcc-4.6
 #CC:=llvm-clang
 
-main: $(SOURCES) $(HEADERS) Makefile
-		$(CC) `pkg-config --libs --cflags $(PACKAGES)` $(CFLAGS) $(LIBS) $(SOURCES) -o main
+main: $(OBJECTS) $(HEADERS) Makefile
+		$(CC) $(LIBS) $(OBJECTS) -o main
+
+$(OBJECTS): %.o: %.c Makefile $(HEADERS)
+		echo $(CC) $< -o $@
 
 run: main
 		./main

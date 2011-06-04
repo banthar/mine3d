@@ -136,8 +136,6 @@ int main(int argc, char* argv[])
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, screen->w, screen->h, 0);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
-
-
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
 		glLoadIdentity();
