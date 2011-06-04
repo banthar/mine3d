@@ -14,7 +14,7 @@ main: $(OBJECTS) $(HEADERS) Makefile
 		$(CC) $(LIBS) $(OBJECTS) -o main
 
 $(OBJECTS): %.o: %.c Makefile $(HEADERS)
-		echo $(CC) $< -o $@
+		$(CC) $(CFLAGS) -c $< -o $@
 
 run: main
 		./main
