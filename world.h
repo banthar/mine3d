@@ -4,10 +4,10 @@
 #include "bool.h"
 #include "math.h"
 #include "noise.h"
+#include "actor.h"
 
 #include <glew.h>
 #include <SDL.h>
-#include <pthread.h>
 
 #define SEGMENT_BITS 5
 #define SEGMENT_MASK ((1<<SEGMENT_BITS)-1)
@@ -26,24 +26,18 @@ typedef struct
 	bool solid;
 }Segment;
 
-typedef struct
+struct World
 {
 	Segment* segment[VIEW_RANGE][VIEW_RANGE][VIEW_RANGE];
 	
-	struct
-	{
-		Vec4f pos;
-		Vec2f rot;
-	}player;
+	Actor player;
 	
 	Vec4i scroll;
 	
 	GLuint terrain;
-	pthread_t thread;
 	
 	Noise noise;
-
-}World;
+};
 
 void worldInit(World* this);
 void worldDestroy(World* this);

@@ -16,8 +16,6 @@ void randomize();
 void draw();
 Segment* loadSegment(int x, int y, int z);
 
-//void vboSegment(World* world, Segment* this, Vec4i pos);
-
 void generateSegment(World* world, Segment* segment, Vec4i pos)
 {
 
@@ -27,26 +25,45 @@ void generateSegment(World* world, Segment* segment, Vec4i pos)
 		
 		Vec2f xy=(Vec2f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE};
 
-		float height=noise2(&world->noise,xy*(Vec2f){0.01,0.01})*50;
-		height+=noise2(&world->noise,xy*(Vec2f){0.1,0.1})*5;
-		height+=noise2(&world->noise,xy*(Vec2f){0.001,0.001})*100;
+		float stoneHeight=0.0;
+		stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.001,0.001})*100;
+		stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.01,0.01})*50;
+		stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.1,0.1})*5;
+
+		if(stoneHeight<0)
+			stoneHeight=-sqrt(-stoneHeight)*1.5;
+
+		float dirtHeight=noise2(&world->noise,xy*(Vec2f){0.01,0.01})*10-1;
+		dirtHeight+=noise2(&world->noise,xy*(Vec2f){0.1,0.1});
+
+		float snowHeight=noise2(&world->noise,xy*(Vec2f){0.01,0.01})*10+50;
+		snowHeight+=noise2(&world->noise,xy*(Vec2f){0.1,0.1})*5;
+
 
 		for(int z=0;z<SEGMENT_SIZE;z++)
 		{
 
 			Vec4f xyz=(Vec4f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE,z+pos[2]*SEGMENT_SIZE};
 
-			if(height>xyz[2])
+			if(stoneHeight>xyz[2])
 			{
-				//if(noise3(world->noise,xyz*(Vec4f){0.01,0.01,0.01,0.01})>0.1)
-					segment->data[z][y][x]=2;
+				segment->data[z][y][x]=2;
+			}
+			else if(stoneHeight>xyz[2]-(xyz[2]-snowHeight)/8 && snowHeight<xyz[2])
+			{
+				segment->data[z][y][x]=3;
+			}
+			else if(dirtHeight>xyz[2])
+			{
+				segment->data[z][y][x]=1;
 			}
 			else
 			{
 				segment->data[z][y][x]=0;
 			}
-	
+
 		}
+
 	}
 
 }
@@ -123,7 +140,7 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 			};
 
 			static const int texCoord[4][2]={
-				{0,0},{1,0},{1,1},{0,1},
+				{0,1},{1,1},{1,0},{0,0},
 			};
 
 			static const Vec4i normal[6]={
@@ -144,14 +161,21 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 				{160,160,160,255},
 			};
 
-			int tileX=(this->data[z][y][x]-1)%TEXTURE_SIZE;
-			int tileY=(this->data[z][y][x]-1)/TEXTURE_SIZE;
+			static const int textures[][6]={
+				{ 0, 0, 0, 0, 0, 0},
+				{ 2, 0, 3, 3, 3, 3},
+				{ 1, 1, 1, 1, 1, 1},
+				{66,66,66,66,66,66},
+			};
 
 			for(int i=0;i<6;i++)
 			{
 			
 				if(worldGet(world,loc+normal[i]) != 0)
 					continue;
+
+				int tileX=(textures[this->data[z][y][x]][i])%TEXTURE_SIZE;
+				int tileY=(textures[this->data[z][y][x]][i])/TEXTURE_SIZE;
 				
 				for(int v=0;v<4;v++)
 				{
@@ -267,8 +291,7 @@ void worldInit(World *this)
 	this->terrain=loadTexture("terrain.png");
 	assert(this->terrain!=0);
 
-	this->player.pos[2]=76.0;
-
+	this->player.pos=(Vec4f){0,0,16};
 
 }
 
@@ -330,7 +353,7 @@ bool worldEvent(World* this, const SDL_Event* event)
 void worldTick(World* this)
 {
 
-	int t=SDL_GetTicks();	
+	//int t=SDL_GetTicks();	
 	Uint8 *keys = SDL_GetKeyState(NULL);
 
 	double vx=0,vy=0;
@@ -355,6 +378,7 @@ void worldTick(World* this)
 	if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
 	{
 		v=0.01*this->player.pos[0];
+		v=100;
 	}
 	
 	this->player.pos[0]-=sin(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
@@ -411,31 +435,10 @@ void worldTick(World* this)
 		this->scroll=scroll;
 
 	}
-/*
-	//for(int r=0;r<VIEW_RANGE/2;r++)
-	for(int z=0;z<VIEW_RANGE;z++)
-	for(int y=0;y<VIEW_RANGE;y++)
-	for(int x=0;x<VIEW_RANGE;x++)
-	{
 
-		//if(max3(abs(x-VIEW_RANGE/2),abs(y-VIEW_RANGE/2),abs(z-VIEW_RANGE/2))!=r)
-			//continue;
-
-		if(this->segment[z][y][x]==NULL)
-		{
-			this->segment[z][y][x]=newSegment();
-			generateSegment(this, this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
-			
-			if(SDL_GetTicks()-t>=5)
-				x=y=z=VIEW_RANGE;
-			
-		}
-	}
-*/
-
-	printf("ticks: %i ",SDL_GetTicks()-t);
-	printf("segments: %i ",allocated_segments);
-	printf("player: %f %f %f\n",this->player.pos[0],this->player.pos[1],this->player.pos[2]);
+	//printf("ticks: %i ",SDL_GetTicks()-t);
+	//printf("segments: %i ",allocated_segments);
+	//printf("player: %f %f %f\n",this->player.pos[0],this->player.pos[1],this->player.pos[2]);
 
 }
 
@@ -481,7 +484,7 @@ void worldDraw(World *this)
 		if(
 			this->segment[z][y][x]!=NULL &&
 			this->segment[z][y][x]->rendered==false &&
-			SDL_GetTicks()-t<20 &&
+			SDL_GetTicks()-t<40 &&
 
 			this->segment[z+1][y][x]!=NULL &&
 			this->segment[z-1][y][x]!=NULL &&
@@ -514,4 +517,3 @@ void worldDraw(World *this)
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 }
-
