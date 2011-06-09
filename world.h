@@ -14,16 +14,22 @@
 #define SEGMENT_SIZE (1<<SEGMENT_BITS)
 #define SEGMENT_SIZEV (Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}
 
-#define VIEW_RANGE 32
+#define VIEW_RANGE 16
 #define TEXTURE_SIZE 16
 
 typedef struct
 {
-	int data[SEGMENT_SIZE][SEGMENT_SIZE][SEGMENT_SIZE];
+	int id;
+}Block;
+
+typedef struct
+{
+	Block data[SEGMENT_SIZE][SEGMENT_SIZE][SEGMENT_SIZE];
 	GLuint vbo;
 	int n;
 	bool rendered;
-	bool solid;
+	bool empty;
+
 }Segment;
 
 struct World

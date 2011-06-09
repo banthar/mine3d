@@ -19,6 +19,8 @@ Segment* loadSegment(int x, int y, int z);
 void generateSegment(World* world, Segment* segment, Vec4i pos)
 {
 
+	segment->empty=true;
+	
 	for(int y=0;y<SEGMENT_SIZE;y++)
 	for(int x=0;x<SEGMENT_SIZE;x++)
 	{
@@ -47,20 +49,23 @@ void generateSegment(World* world, Segment* segment, Vec4i pos)
 
 			if(stoneHeight>xyz[2])
 			{
-				segment->data[z][y][x]=2;
+				segment->data[z][y][x].id=2;
 			}
 			else if(stoneHeight>xyz[2]-(xyz[2]-snowHeight)/8 && snowHeight<xyz[2])
 			{
-				segment->data[z][y][x]=3;
+				segment->data[z][y][x].id=3;
 			}
 			else if(dirtHeight>xyz[2])
 			{
-				segment->data[z][y][x]=1;
+				segment->data[z][y][x].id=1;
 			}
 			else
 			{
-				segment->data[z][y][x]=0;
+				segment->data[z][y][x].id=0;
 			}
+
+			if(segment->data[z][y][x].id!=0)
+				segment->empty=false;
 
 		}
 
@@ -75,15 +80,15 @@ typedef struct
 	Vec2f texCoord;
 }Vertex;
 
-int segmentGet(Segment* this, int x, int y, int z)
+Block segmentGet(Segment* this, int x, int y, int z)
 {
 	if(x<0 || y<0 || z<0 || x>=SEGMENT_SIZE || y>=SEGMENT_SIZE || z>=SEGMENT_SIZE)
-		return -1;
+		return (Block){};
 	else
 		return this->data[z][y][x];
 }
 
-int worldGet(World* this, Vec4i pos)
+Block worldGet(World* this, Vec4i pos)
 {
 
 	const Vec4i segment_bits=(Vec4i){SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS};
@@ -93,12 +98,12 @@ int worldGet(World* this, Vec4i pos)
 
 	for(int i=0;i<3;i++)
 		if(global[i]<0 || global[i]>=VIEW_RANGE)
-			return 0;
+			return (Block){};
 
 	Segment* segment=this->segment[global[2]][global[1]][global[0]];
 
 	if(segment==NULL)
-		return 0;
+		return (Block){};
 
 	Vec4i local=pos&segment_mask;
 
@@ -110,6 +115,11 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 {
 
 	assert(this!=NULL);
+
+	this->rendered=true;
+
+	if(this->empty)
+		return;
 
 	const int max_vertices=SEGMENT_SIZE*SEGMENT_SIZE*SEGMENT_SIZE*6*4;
 
@@ -125,7 +135,7 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 		Vec4i loc=pos*SEGMENT_SIZEV+(Vec4i){x,y,z};
 
 		//if(worldGet(world,loc)!=0)
-		if(this->data[z][y][x]!=0)
+		if(this->data[z][y][x].id!=0)
 		{
 
 			static const Vec4i face[6][4]={
@@ -171,11 +181,11 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 			for(int i=0;i<6;i++)
 			{
 			
-				if(worldGet(world,loc+normal[i]) != 0)
+				if(worldGet(world,loc+normal[i]).id != 0)
 					continue;
 
-				int tileX=(textures[this->data[z][y][x]][i])%TEXTURE_SIZE;
-				int tileY=(textures[this->data[z][y][x]][i])/TEXTURE_SIZE;
+				int tileX=(textures[this->data[z][y][x].id][i])%TEXTURE_SIZE;
+				int tileY=(textures[this->data[z][y][x].id][i])/TEXTURE_SIZE;
 				
 				for(int v=0;v<4;v++)
 				{
@@ -183,15 +193,12 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 					data[n].pos=loc+face[i][v];
 					data[n].color=colors[i];
 					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
-					//data[n].texCoord=(Vec2f){texCoord[v][0],texCoord[v][1]};
 					n++;
 				}
 			}
 
 		}
 	}
-
-	this->rendered=true;
 
 	if(n==0)
 		return;
@@ -202,7 +209,6 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(*data)*n, data, GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 
 }
 

@@ -9,7 +9,7 @@
 
 SDL_Surface* screen;
 bool fullscreen=false;
-SDL_Rect window_rect={0,0,640,480};
+SDL_Rect window_rect={0,0,720,420};
 SDL_Rect fullscreen_rect;
 bool grab_mouse=false;
 World world;
@@ -49,7 +49,6 @@ void initVideo()
 
 __attribute__((noreturn)) void quit()
 {
-	puts("destroying world");
 	worldDestroy(&world);
 	SDL_Quit();
 	exit(0);

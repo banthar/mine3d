@@ -5,7 +5,7 @@ HEADERS:=actor.h bool.h error.h math.h noise.h utils.h world.h block.h
 PACKAGES:=sdl glew sdl-image gl
 
 LIBS:=-lm -lpthread `pkg-config --libs $(PACKAGES)`
-CFLAGS:=-std=gnu99 -Wall -march=native -ffast-math `pkg-config --cflags $(PACKAGES)`
+CFLAGS:=-std=gnu99 -O4 -Wall -march=native -ffast-math `pkg-config --cflags $(PACKAGES)`
 
 CC:=gcc-4.6
 
