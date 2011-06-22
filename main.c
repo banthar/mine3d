@@ -18,7 +18,7 @@ GLuint screen_texture;
 void grabMouse()
 {
 	SDL_ShowCursor(!grab_mouse);
-	SDL_WM_GrabInput(grab_mouse);	
+	SDL_WM_GrabInput(grab_mouse?SDL_GRAB_ON:SDL_GRAB_OFF);	
 }
 
 

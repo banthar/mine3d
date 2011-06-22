@@ -315,7 +315,7 @@ void worldDestroy(World* this)
 
 }
 
-static inline void worldSpiral(World* this, void (f)(int x,int y,int z))
+static inline void worldSpiral(World* this, void (f)(World*,int x,int y,int z))
 {
 	
 	int c=VIEW_RANGE/2;
@@ -327,12 +327,12 @@ static inline void worldSpiral(World* this, void (f)(int x,int y,int z))
 		if(y==-r || x==-r || y==r-1 || x==r-1)
 		{
 			for(int z=-r;z<r;z++)
-				f(c+x,c+y,c+z);
+				f(this,c+x,c+y,c+z);
 		}
 		else
 		{
-			f(c+x,c+y,c+r-1);
-			f(c+x,c+y,c-r);
+			f(this,c+x,c+y,c+r-1);
+			f(this,c+x,c+y,c-r);
 		}
 	}
 	
@@ -448,10 +448,43 @@ void worldTick(World* this)
 
 }
 
+void worldDrawSegment(World *this,int x, int y, int z)
+{
+
+	Vec4i pos=(Vec4i){x,y,z}+this->scroll;
+
+	if(this->segment[z][y][x]==NULL && SDL_GetTicks()-this->time<10)
+	{
+		this->segment[z][y][x]=newSegment();
+		generateSegment(this, this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
+	}
+
+	if(
+		this->segment[z][y][x]!=NULL &&
+		this->segment[z][y][x]->rendered==false &&
+		SDL_GetTicks()-this->time<40 &&
+
+		this->segment[z+1][y][x]!=NULL &&
+		this->segment[z-1][y][x]!=NULL &&
+
+		this->segment[z][y+1][x]!=NULL &&
+		this->segment[z][y-1][x]!=NULL &&
+
+		this->segment[z][y][x+1]!=NULL &&
+		this->segment[z][y][x-1]!=NULL )
+	{
+		renderSegment(this, this->segment[z][y][x], pos);
+	}
+
+	drawSegment(this, this->segment[z][y][x], pos);
+
+}
+
+
 void worldDraw(World *this)
 {
 
-	int t=SDL_GetTicks();
+	this->time=SDL_GetTicks();
 
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -469,56 +502,7 @@ void worldDraw(World *this)
 
 	glBindTexture(GL_TEXTURE_2D, this->terrain);
 
-	void aux(int x, int y, int z)
-	{
-
-		/*
-		if(SDL_GetTicks()-t>25)
-		{
-			x=y=z=r=VIEW_RANGE;
-			return false;
-		}*/
-
-		Vec4i pos=(Vec4i){x,y,z}+this->scroll;
-
-		if(this->segment[z][y][x]==NULL && SDL_GetTicks()-t<10)
-		{
-			this->segment[z][y][x]=newSegment();
-			generateSegment(this, this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
-		}
-
-		if(
-			this->segment[z][y][x]!=NULL &&
-			this->segment[z][y][x]->rendered==false &&
-			SDL_GetTicks()-t<40 &&
-
-			this->segment[z+1][y][x]!=NULL &&
-			this->segment[z-1][y][x]!=NULL &&
-
-			this->segment[z][y+1][x]!=NULL &&
-			this->segment[z][y-1][x]!=NULL &&
-
-			this->segment[z][y][x+1]!=NULL &&
-			this->segment[z][y][x-1]!=NULL )
-		{
-			renderSegment(this, this->segment[z][y][x], pos);
-		}
-
-		drawSegment(this, this->segment[z][y][x], pos);
-
-/*
-		if(this->segment[z][y][x]!=NULL)
-		{
-			//glPushMatrix();
-			//glTranslatef((x+this->scroll[0])*SEGMENT_SIZE,(y+this->scroll[1])*SEGMENT_SIZE,(z+this->scroll[2])*SEGMENT_SIZE);
-			drawSegment(this, this->segment[z][y][x], (Vec4i){x,y,z}+this->scroll);
-			//glPopMatrix();
-		}
-*/
-
-	}
-
-	worldSpiral(this,aux);
+	worldSpiral(this,worldDrawSegment);
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();

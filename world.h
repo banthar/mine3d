@@ -14,7 +14,7 @@
 #define SEGMENT_SIZE (1<<SEGMENT_BITS)
 #define SEGMENT_SIZEV (Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}
 
-#define VIEW_RANGE 16
+#define VIEW_RANGE 32
 #define TEXTURE_SIZE 16
 
 typedef struct
@@ -35,6 +35,8 @@ typedef struct
 struct World
 {
 	Segment* segment[VIEW_RANGE][VIEW_RANGE][VIEW_RANGE];
+	
+	int time;
 	
 	Actor player;
 	
