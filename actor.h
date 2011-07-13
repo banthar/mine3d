@@ -2,7 +2,7 @@
 #pragma once
 
 #include "math.h"
-#include "bool.h"
+#include <stdbool.h>
 
 typedef struct
 {

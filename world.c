@@ -2,9 +2,9 @@
 #include "world.h"
 #include "utils.h"
 #include "error.h"
-#include "bool.h"
 #include "noise.h"
 
+#include <stdbool.h>
 #include <math.h>
 #include <SDL.h>
 #include <glew.h>

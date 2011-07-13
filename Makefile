@@ -1,6 +1,6 @@
 
 OBJECTS:=error.o actor.o main.o  noise.o utils.o world.o block.o
-HEADERS:=actor.h bool.h error.h math.h noise.h utils.h world.h block.h
+HEADERS:=actor.h error.h math.h noise.h utils.h world.h block.h
 
 PACKAGES:=sdl glew sdl-image gl
 

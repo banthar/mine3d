@@ -1,9 +1,10 @@
 
-#include "bool.h"
 #include "error.h"
 #include "world.h"
 #include "utils.h"
+#include "network.h"
 
+#include <stdbool.h>
 #include <SDL.h>
 #include <glew.h>
 

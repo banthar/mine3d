@@ -1,11 +1,11 @@
 
 #pragma once
 
-#include "bool.h"
 #include "math.h"
 #include "noise.h"
 #include "actor.h"
 
+#include <stdbool.h>
 #include <glew.h>
 #include <SDL.h>
 
