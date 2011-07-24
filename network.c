@@ -280,9 +280,9 @@ static inline void readMapChunk(World* world, Socket* socket)
 
 	PACKET_DEBUG_START(0x33,"Map Chunk");
 
+	int z0=readInt(socket);
+	int y0=readShort(socket);
 	int x0=readInt(socket);
-	int16_t z0=readShort(socket);
-	int y0=readInt(socket);
 	int size_x=readByte(socket)+1;
 	int size_y=readByte(socket)+1;
 	int size_z=readByte(socket)+1;
