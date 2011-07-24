@@ -1,12 +1,16 @@
 
-#include "error.h"
+//#include "error.h"
 #include "world.h"
 #include "utils.h"
 #include "network.h"
 
+#include <std.h>
+#include <signal.h>
+
 #include <stdbool.h>
-#include <SDL.h>
-#include <glew.h>
+#include "SDL.h"
+#include "SDL_net.h"
+#include "glew.h"
 
 SDL_Surface* screen;
 bool fullscreen=false;
@@ -92,7 +96,16 @@ bool handleEvent(const SDL_Event* event)
 int main(int argc, char* argv[])
 {
 
-	SDL_Init(SDL_INIT_VIDEO);
+	if(SDL_Init(SDL_INIT_VIDEO)!=0)
+		panic("sdl error");
+
+	if(SDLNet_Init() != 0)
+		panic("sdl net error");
+
+	signal(SIGINT, SIG_DFL);
+
+	//worldInit(&world);
+	//return networkMain(&world);
 
 	const SDL_VideoInfo* video_info=SDL_GetVideoInfo();
 	fullscreen_rect=(SDL_Rect){0,0,video_info->current_w,video_info->current_h};
@@ -101,7 +114,6 @@ int main(int argc, char* argv[])
 
 	if(glewInit()!=GLEW_OK)
 		panic("glew error");
-
 	screen_texture=emptyTexture(1,1);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -109,9 +121,13 @@ int main(int argc, char* argv[])
 
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		
+
 	worldInit(&world);
-		
+	worldLock(&world);
+
+	SDL_Thread *network_thread = SDL_CreateThread(networkMain, &world);
+
+
 	while(true)
 	{
 		
@@ -132,6 +148,8 @@ int main(int argc, char* argv[])
 
 		worldDraw(&world);
 
+		worldUnlock(&world);
+/*
 		glBindTexture(GL_TEXTURE_2D,screen_texture);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, screen->w, screen->h, 0);
 		glGenerateMipmap(GL_TEXTURE_2D);
@@ -149,7 +167,7 @@ int main(int argc, char* argv[])
 		glTexCoord2f(0,1); glColor4f(1.0,1.0,1.1,1.0); glVertex2f(-1, 1);
 		glEnd();
 		glPopMatrix();
-		
+*/		
 		//glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, screen->w, screen->h, 0);
 		//glGenerateMipmap(GL_TEXTURE_2D);
 		
@@ -161,6 +179,8 @@ int main(int argc, char* argv[])
 
 		if(delay>0)
 			SDL_Delay(delay);
+
+		worldUnlock(&world);
 			
 	}
 		

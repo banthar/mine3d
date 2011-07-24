@@ -45,11 +45,19 @@ struct World
 	GLuint terrain;
 	
 	Noise noise;
+
+	SDL_mutex *lock;
+
 };
 
 void worldInit(World* this);
+void worldLock(World* this);
+void worldUnlock(World* this);
 void worldDestroy(World* this);
 void worldTick(World* this);
 void worldDraw(World* this);
 bool worldEvent(World* this, const SDL_Event* event);
+void worldSet(World* this, Vec4i pos, Block block);
+Block worldGet(World* this, Vec4i pos);
+
 

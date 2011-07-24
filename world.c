@@ -15,8 +15,21 @@ void init();
 void randomize();
 void draw();
 Segment* loadSegment(int x, int y, int z);
+Segment* newSegment();
 
-void generateSegment(World* world, Segment* segment, Vec4i pos)
+void worldLock(World* world)
+{
+	assert(world!=NULL);
+	assert(SDL_LockMutex(world->lock)==0);
+}
+
+void worldUnlock(World* world)
+{
+	assert(world!=NULL);
+	assert(SDL_UnlockMutex(world->lock)==0);
+}
+
+static void generateSegment(World* world, Segment* segment, Vec4i pos)
 {
 
 	segment->empty=true;
@@ -111,6 +124,38 @@ Block worldGet(World* this, Vec4i pos)
 
 }
 
+
+void worldSet(World* this, Vec4i pos, Block block)
+{
+
+	const Vec4i segment_bits=(Vec4i){SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS};
+	const Vec4i segment_mask=(Vec4i){SEGMENT_MASK,SEGMENT_MASK,SEGMENT_MASK,SEGMENT_MASK};
+
+	Vec4i global=(pos>>segment_bits)-this->scroll;
+
+	for(int i=0;i<3;i++)
+		if(global[i]<0 || global[i]>=VIEW_RANGE)
+			return;
+
+	Segment* segment=this->segment[global[2]][global[1]][global[0]];
+
+	if(segment==NULL)
+	{
+		segment=newSegment();
+		this->segment[global[2]][global[1]][global[0]]=segment;
+	}
+
+	segment->rendered=false;
+
+	if(block.id!=0)
+		segment->empty=false;
+
+	Vec4i local=pos&segment_mask;
+
+	segment->data[local[2]][local[1]][local[0]]=block;
+
+}
+
 void renderSegment(World* world, Segment* this, Vec4i pos)
 {
 
@@ -121,9 +166,8 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 	if(this->empty)
 		return;
 
-	const int max_vertices=SEGMENT_SIZE*SEGMENT_SIZE*SEGMENT_SIZE*6*4;
-
-	Vertex data[max_vertices];
+	static Vertex data[SEGMENT_SIZE*SEGMENT_SIZE*SEGMENT_SIZE*6*4];
+	const int max_vertices=sizeof(data)/sizeof(*data);
 
 	int n=0;
 
@@ -186,7 +230,7 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 
 				int tileX=(textures[this->data[z][y][x].id][i])%TEXTURE_SIZE;
 				int tileY=(textures[this->data[z][y][x].id][i])/TEXTURE_SIZE;
-				
+
 				for(int v=0;v<4;v++)
 				{
 					assert(n<max_vertices);
@@ -195,6 +239,7 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
 					n++;
 				}
+
 			}
 
 		}
@@ -291,11 +336,13 @@ void worldInit(World *this)
 {
 	
 	*this=(World){};
-	
+
+	this->lock=SDL_CreateMutex();
+
 	noiseInit(&this->noise,666);
 
-	this->terrain=loadTexture("terrain.png");
-	assert(this->terrain!=0);
+	//this->terrain=loadTexture("terrain.png");
+	//assert(this->terrain!=0);
 
 	this->player.pos=(Vec4f){0,0,16};
 
@@ -453,16 +500,18 @@ void worldDrawSegment(World *this,int x, int y, int z)
 
 	Vec4i pos=(Vec4i){x,y,z}+this->scroll;
 
+/*
 	if(this->segment[z][y][x]==NULL && SDL_GetTicks()-this->time<10)
 	{
 		this->segment[z][y][x]=newSegment();
 		generateSegment(this, this->segment[z][y][x],(Vec4i){x,y,z}+this->scroll);
 	}
+*/
 
 	if(
 		this->segment[z][y][x]!=NULL &&
 		this->segment[z][y][x]->rendered==false &&
-		SDL_GetTicks()-this->time<40 &&
+		SDL_GetTicks()-this->time<40 /*&&
 
 		this->segment[z+1][y][x]!=NULL &&
 		this->segment[z-1][y][x]!=NULL &&
@@ -471,7 +520,7 @@ void worldDrawSegment(World *this,int x, int y, int z)
 		this->segment[z][y-1][x]!=NULL &&
 
 		this->segment[z][y][x+1]!=NULL &&
-		this->segment[z][y][x-1]!=NULL )
+		this->segment[z][y][x-1]!=NULL */)
 	{
 		renderSegment(this, this->segment[z][y][x], pos);
 	}
@@ -493,6 +542,17 @@ void worldDraw(World *this)
 	glRotatef(this->player.rot[0]*180/M_PI,0,0,1);
 
 	glTranslated(-this->player.pos[0],-this->player.pos[1],-this->player.pos[2]);
+
+	glBegin(GL_LINES);
+	int n=16;
+	for(int i=-n;i<n;i++)
+	{
+		glVertex3f(-16*n,i*16,0);
+		glVertex3f(16*n,i*16,0);
+		glVertex3f(i*16,-16*n,0);
+		glVertex3f(i*16,16*n,0);
+	}
+	glEnd();
 
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);

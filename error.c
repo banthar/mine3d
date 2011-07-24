@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <execinfo.h>
-
+/*
 __attribute__((__noreturn__)) void panic(char* file,int line,char *format,...)
 {
 
@@ -27,4 +27,4 @@ __attribute__((__noreturn__)) void panic(char* file,int line,char *format,...)
 }
 
 
-
+*/

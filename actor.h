@@ -10,6 +10,8 @@ typedef struct
 	Vec4f size;
 	Vec4f v;
 	Vec2f rot;
+	bool on_ground;
+	double stance;
 }Actor;
 
 struct World;
