@@ -22,8 +22,8 @@ typedef struct
 {
 	byte id;
 	byte metadata;
-	byte light;
-	byte skyLight;
+	float light;
+	float skyLight;
 }Block;
 
 typedef struct

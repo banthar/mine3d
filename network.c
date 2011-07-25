@@ -299,6 +299,11 @@ static inline void readPreChunk(World* world, Socket* socket)
 
 }
 
+static inline byte getNibble(byte* array, int pos)
+{
+	return (pos%2?array[pos/2]>>4:array[pos/2]&0xf);
+}
+
 static inline void readMapChunk(World* world, Socket* socket)
 {
 
@@ -329,15 +334,30 @@ static inline void readMapChunk(World* world, Socket* socket)
 
 	worldLock(world);
 
-	int pos=0;
+	int size=size_x*size_y*size_z;
+
+	byte* ids=uncompressed;
+	byte* metadata=uncompressed+size;
+	byte* light=metadata+size/2;
+	byte* skyLight=light+size/2;
+
+
 
 	for(int z=0;z<size_z;z++)
 	for(int x=0;x<size_x;x++)
 	for(int y=0;y<size_y;y++)
 	{
-		byte block_id=uncompressed[pos];
-		pos++;
-		worldSet(world, (Vec4i){z0+z,x0+x,y0+y}, (Block){.id=block_id});
+
+		int pos=y+size_y*(x+size_x*z);
+
+		Block block={
+			.id=ids[pos],
+			.metadata=getNibble(metadata,pos),
+			.light=getNibble(light,pos)/(float)0xf,
+			.skyLight=getNibble(skyLight,pos)/(float)0xf,
+		};
+
+		worldSet(world, (Vec4i){z0+z,x0+x,y0+y}, block);
 
 
 	}

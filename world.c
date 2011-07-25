@@ -90,7 +90,8 @@ static void generateSegment(World* world, Segment* segment, Vec4i pos)
 typedef struct
 {
 	Vec4i pos;
-	Vec4b color;
+	Vec4f color;
+	Vec4f normal;
 	Vec2f texCoord;
 }Vertex;
 
@@ -179,10 +180,10 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 
 		Vec4i loc=pos*SEGMENT_SIZEV+(Vec4i){x,y,z};
 
-		int id=this->data[z][y][x].id;
+		Block block=this->data[z][y][x];
 
 		//if(worldGet(world,loc)!=0)
-		if(id!=0)
+		if(block.id!=0)
 		{
 
 			static const Vec4i face[6][4]={
@@ -208,12 +209,12 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 			};
 
 			static const Vec4i normal[6]={
-				{0,0,-1},
-				{0,0,1},
-				{0,-1,0},
-				{0,1,0},
-				{-1,0,0},
-				{1,0,0},
+				{ 0, 0,-1},
+				{ 0, 0, 1},
+				{ 0,-1, 0},
+				{ 0, 1, 0},
+				{-1, 0, 0},
+				{ 1, 0, 0},
 			};
 
 			static const Vec4b colors[]={
@@ -225,14 +226,14 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 				{160,160,160,255},
 			};
 
-			switch(block_definition[id].draw_mode)
+			switch(block_definition[block.id].draw_mode)
 			{
 				case DRAW_NONE:
 					break;
 				case DRAW_TREE:
 					for(int i=0;i<4;i++)
 					{
-						int tile_id=block_definition[id].textures[i];
+						int tile_id=block_definition[block.id].textures[i];
 
 						int tileX=tile_id%TEXTURE_SIZE;
 						int tileY=tile_id/TEXTURE_SIZE;
@@ -241,9 +242,9 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 						{
 							assert(n<max_vertices);
 							data[n].pos=loc+tree_face[i][v];
-							data[n].color=(Vec4b){255,255,255,255};
-							if(block_definition[id].color_mode==COLOR_GRASS)
-								data[n].color*=(Vec4b){0,1,0,1};
+							data[n].color=(Vec4f){1,1,1,1};
+							if(block_definition[block.id].color_mode==COLOR_GRASS)
+								data[n].color*=(Vec4f){0,1,0,1};
 							data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
 							n++;
 						}
@@ -253,12 +254,14 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 				case DRAW_BLOCK:
 					for(int i=0;i<6;i++)
 					{
-			
-						if(block_definition[worldGet(world,loc+normal[i]).id].transparent==false)
+
+						Block normalBlock=worldGet(world,loc+normal[i]);			
+
+						if(block_definition[normalBlock.id].transparent==false)
 							continue;
 
 
-						int tile_id=block_definition[id].textures[i];
+						int tile_id=block_definition[block.id].textures[i];
 
 						int tileX=tile_id%TEXTURE_SIZE;
 						int tileY=tile_id/TEXTURE_SIZE;
@@ -267,9 +270,10 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 						{
 							assert(n<max_vertices);
 							data[n].pos=loc+face[i][v];
-							data[n].color=colors[i];
-							if(block_definition[id].color_mode==COLOR_GRASS)
-								data[n].color*=(Vec4b){0,1,0,1};
+							data[n].color=(Vec4f){normalBlock.light,normalBlock.light,normalBlock.light,1};
+							data[n].normal=(Vec4f){0,0,normalBlock.skyLight,1};
+							if(block_definition[block.id].color_mode==COLOR_GRASS)
+								data[n].color*=(Vec4f){0.2,1,0.1,1};
 
 							data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
 							n++;
@@ -305,11 +309,13 @@ void drawSegment(World* world, Segment* this, Vec4i pos)
 
 		glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
 		glVertexPointer(3, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex,pos));
-		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+		glColorPointer(4, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex,color));
+		glNormalPointer(GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex,normal));
 		glTexCoordPointer(2,GL_FLOAT,sizeof(Vertex), (void*)offsetof(Vertex,texCoord));
 
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glEnableClientState(GL_COLOR_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		glDrawArrays(GL_QUADS, 0, this->n);
 
@@ -614,8 +620,12 @@ void worldDraw(World *this)
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
 	glEnable(GL_TEXTURE_2D);
-	//glEnable(GL_BLEND);
 	glAlphaFunc(GL_GREATER,0.1);
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+
+	glLightfv(GL_LIGHT0, GL_POSITION, (float[]){ 0.0, 0.0, 1.0, 0.0 });
 
 	glMatrixMode(GL_MODELVIEW);
 
