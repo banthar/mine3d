@@ -3,7 +3,7 @@
 
 #include <glew.h>
 
-GLuint emptyTexture(int width, int height);
-GLuint loadTexture(const char* filename);
+public GLuint emptyTexture(int width, int height);
+public GLuint loadTexture(const char* filename);
 
 

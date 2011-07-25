@@ -1,23 +1,25 @@
 
+#include "config.h"
+
+#include "network.h"
+
 #include "socket.h"
-
-
-#include "SDL.h"
+#include "world.h"
 #include "math.h"
+
+#include <math.h>
+#include "SDL.h"
 #include "SDL_net.h"
-#include <std.h>
 #include <iconv.h>
 #include <zlib.h>
 
-#include "world.h"
-
 #define PACKET_DEBUG_START(id,name) {}
 
-static char* playerName="Player123";
+static char* playerName="banthar";
 
 static int stage=0;
 
-static inline void sendLoginRequest(World* world, Socket* socket)
+private void sendLoginRequest(World* world, Socket* socket)
 {
 	writeByte(socket,0x01);
 	writeInt(socket,14);
@@ -26,13 +28,13 @@ static inline void sendLoginRequest(World* world, Socket* socket)
 	writeByte(socket,0);
 }
 
-static inline void sendHandShake(World* world, Socket* socket)
+private void sendHandShake(World* world, Socket* socket)
 {
 	writeByte(socket,0x02);
 	writeString16(socket,playerName);
 }
 
-void sendPlayerPositionAndLook(World* world, Socket* socket)
+private void sendPlayerPositionAndLook(World* world, Socket* socket)
 {
 
 	world->player.stance=world->player.pos[2]+1.62;
@@ -42,24 +44,22 @@ void sendPlayerPositionAndLook(World* world, Socket* socket)
 	writeDouble(socket,world->player.pos[2]);
 	writeDouble(socket,world->player.stance);
 	writeDouble(socket,world->player.pos[1]);
-	writeFloat(socket,world->player.rot[0]);
-	writeFloat(socket,world->player.rot[1]);
+	writeFloat(socket,180-world->player.rot[0]*180/M_PI);
+	writeFloat(socket,clampf(90-world->player.rot[1]*180/M_PI,-90,+90));
 	writeBool(socket,world->player.on_ground);
-
-	printf("pos: (%f %f %f)\n",world->player.pos[0],world->player.pos[1],world->player.pos[2]);
 
 }
 
 //const byte position[]="\x0d\x40\x21\x00\x00\x00\x00\x00\x00\x40\x50\x40\x00\x00\x00\x00\x00\x40\x50\xa7\xae\x14\x80\x00\x00\x40\x21\x00\x00\x00\x00\x00\x00\xc3\x34\x00\x00\x00\x00\x00\x00\x00";
 
-static inline void debugPacketType(const char* format,...)
+private void debugPacketType(const char* format,...)
 {
 	//printf("%s",name);
 }
 
 typedef void PacketHandler(World* world, Socket* socket);
 
-static inline void readLoginRequest(World* world, Socket* socket)
+private void readLoginRequest(World* world, Socket* socket)
 {
 	debugPacketType("Login Request\n");
 	readInt(socket);
@@ -68,26 +68,32 @@ static inline void readLoginRequest(World* world, Socket* socket)
 	readByte(socket);
 }
 
-static inline void readHandshake(World* world, Socket* socket)
+private void readHandshake(World* world, Socket* socket)
 {
 	debugPacketType("Handshake\n");
 	readString16(socket);
 	sendLoginRequest(world,socket);
 }
 
-static inline void readChatMessage(World* world, Socket* socket)
+private void readChatMessage(World* world, Socket* socket)
 {
 	debugPacketType("Chat Message\n");
 	readString16(socket);
 }
 
-static inline void readTimeUpdate(World* world, Socket* socket)
+private void readTimeUpdate(World* world, Socket* socket)
 {
 	debugPacketType("Time Update\n");
-	readLong(socket);
+	uint64_t ticks=readLong(socket);
+
+	worldLock(world);
+	world->lastSyncTicks=ticks;
+	world->lastSyncTime=SDL_GetTicks();
+	worldUnlock(world);
+
 }
 
-static inline void readEntityEquipment(World* world, Socket* socket)
+private void readEntityEquipment(World* world, Socket* socket)
 {
 	debugPacketType("Entity Equipment\n");
 	readInt(socket);
@@ -96,7 +102,7 @@ static inline void readEntityEquipment(World* world, Socket* socket)
 	readShort(socket);
 }
 
-static inline void readSpawnPosition(World* world, Socket* socket)
+private void readSpawnPosition(World* world, Socket* socket)
 {
 	debugPacketType("Spawn Position\n");
 	readInt(socket);
@@ -104,20 +110,20 @@ static inline void readSpawnPosition(World* world, Socket* socket)
 	readInt(socket);
 }
 
-static inline void readUpdateHealth(World* world, Socket* socket)
+private void readUpdateHealth(World* world, Socket* socket)
 {
 	debugPacketType("Update Health\n");
 	readShort(socket);
 }
 
-static inline void readPlayerPositionLook(World* world, Socket* socket)
+private void readPlayerPositionLook(World* world, Socket* socket)
 {
 
 	debugPacketType("Player Position & Look\n");
 
 	double x=readDouble(socket);
-	double y=readDouble(socket);
 	double stance=readDouble(socket);
+	double y=readDouble(socket);
 	double z=readDouble(socket);
 	float yaw=readFloat(socket);
 	float pitch=readFloat(socket);
@@ -133,8 +139,8 @@ static inline void readPlayerPositionLook(World* world, Socket* socket)
 	world->player.pos[2]=y;
 	world->player.pos[1]=z;
 	world->player.stance=stance;
-	world->player.rot[0]=yaw;
-	world->player.rot[1]=pitch;
+	world->player.rot[0]=yaw/180.0*M_PI;
+	world->player.rot[1]=pitch/180.0*M_PI;
 	world->player.on_ground=on_ground;
 	world->player.on_ground=on_ground;
 
@@ -149,13 +155,13 @@ static inline void readPlayerPositionLook(World* world, Socket* socket)
 
 }
 
-static inline void readAnimation(World* world, Socket* socket)
+private void readAnimation(World* world, Socket* socket)
 {
 	readInt(socket);
 	readByte(socket);
 }
 
-static inline void readNamedEntitySpawn(World* world, Socket* socket)
+private void readNamedEntitySpawn(World* world, Socket* socket)
 {
 	debugPacketType("Named Entity Spawn\n");
 	int id=readInt(socket);
@@ -169,13 +175,13 @@ static inline void readNamedEntitySpawn(World* world, Socket* socket)
 
 	worldLock(world);
 
-	printf("%s connected\n",name);
+	printf("%i %s connected (%i %i %i) (%i %i %i)\n",id, name,x,y,z,rotation,pitch,currentItem);
 
 	worldUnlock(world);
 
 }
 
-static inline void readPickupSpawn(World* world, Socket* socket)
+private void readPickupSpawn(World* world, Socket* socket)
 {
 	debugPacketType("Pickup Spawn\n");
 	readInt(socket);
@@ -190,7 +196,7 @@ static inline void readPickupSpawn(World* world, Socket* socket)
 	readByte(socket);
 }
 
-static inline void readCollectItem(World* world, Socket* socket)
+private void readCollectItem(World* world, Socket* socket)
 {
 	PACKET_DEBUG_START(0x16,"Collect Item");
 
@@ -198,7 +204,7 @@ static inline void readCollectItem(World* world, Socket* socket)
 	readInt(socket);
 }
 
-static inline void readAddObject(World* world, Socket* socket)
+private void readAddObject(World* world, Socket* socket)
 {
 	PACKET_DEBUG_START(0x17,"Add Object/Vehicle");
 	readInt(socket);
@@ -215,7 +221,7 @@ static inline void readAddObject(World* world, Socket* socket)
 	}
 }
 
-static inline void readMobSpawn(World* world, Socket* socket)
+private void readMobSpawn(World* world, Socket* socket)
 {
 	debugPacketType("Mob Spawn\n");
 	readInt(socket);
@@ -228,7 +234,7 @@ static inline void readMobSpawn(World* world, Socket* socket)
 	readStream(socket);
 }
 
-static inline void readEntityVelocity(World* world, Socket* socket)
+private void readEntityVelocity(World* world, Socket* socket)
 {
 	debugPacketType("Entity Velocity?\n");
 	readInt(socket);
@@ -237,13 +243,13 @@ static inline void readEntityVelocity(World* world, Socket* socket)
 	readShort(socket);
 }
 
-static inline void readDestroyEnity(World* world, Socket* socket)
+private void readDestroyEnity(World* world, Socket* socket)
 {
 	debugPacketType("Destroy Entity\n");
 	readInt(socket);
 }
 
-static inline void readEntityRelativeMove(World* world, Socket* socket)
+private void readEntityRelativeMove(World* world, Socket* socket)
 {
 	debugPacketType("Entity Relative Move\n");
 	readInt(socket);
@@ -252,7 +258,7 @@ static inline void readEntityRelativeMove(World* world, Socket* socket)
 	readByte(socket);
 }
 
-static inline void readEntityLookAndRelativeMove(World* world, Socket* socket)
+private void readEntityLookAndRelativeMove(World* world, Socket* socket)
 {
 	debugPacketType("Entity Look and Relative Move\n");
 	readInt(socket);
@@ -263,7 +269,7 @@ static inline void readEntityLookAndRelativeMove(World* world, Socket* socket)
 	readByte(socket);
 }
 
-static inline void readEntityTeleport(World* world, Socket* socket)
+private void readEntityTeleport(World* world, Socket* socket)
 {
 	debugPacketType("Entity Teleport\n");
 	readInt(socket);
@@ -274,21 +280,21 @@ static inline void readEntityTeleport(World* world, Socket* socket)
 	readByte(socket);
 }
 
-static inline void readEntityStatus(World* world, Socket* socket)
+private void readEntityStatus(World* world, Socket* socket)
 {
 	debugPacketType("Entity Status?\n");
 	readInt(socket);
 	readByte(socket);
 }
 
-static inline void readEntityMetadata(World* world, Socket* socket)
+private void readEntityMetadata(World* world, Socket* socket)
 {
 	debugPacketType("Entity Metadata\n");
 	readInt(socket);
 	readStream(socket);
 }
 
-static inline void readPreChunk(World* world, Socket* socket)
+private void readPreChunk(World* world, Socket* socket)
 {
 	SDL_Delay(1);
 	int x=readInt(socket);
@@ -299,12 +305,12 @@ static inline void readPreChunk(World* world, Socket* socket)
 
 }
 
-static inline byte getNibble(byte* array, int pos)
+private byte getNibble(byte* array, int pos)
 {
 	return (pos%2?array[pos/2]>>4:array[pos/2]&0xf);
 }
 
-static inline void readMapChunk(World* world, Socket* socket)
+private void readMapChunk(World* world, Socket* socket)
 {
 
 	PACKET_DEBUG_START(0x33,"Map Chunk");
@@ -367,7 +373,7 @@ static inline void readMapChunk(World* world, Socket* socket)
 
 }
 
-static inline void readMultiBlockChange(World* world, Socket* socket)
+private void readMultiBlockChange(World* world, Socket* socket)
 {
 	debugPacketType("Multi Block Change\n");
 
@@ -384,7 +390,7 @@ static inline void readMultiBlockChange(World* world, Socket* socket)
 
 }
 
-static inline void readBlockChange(World* world, Socket* socket)
+private void readBlockChange(World* world, Socket* socket)
 {
 	debugPacketType("Block Change\n");
 	readInt(socket);
@@ -394,7 +400,7 @@ static inline void readBlockChange(World* world, Socket* socket)
 	readByte(socket);
 }
 
-static inline void readExplosion(World* world, Socket* socket)
+private void readExplosion(World* world, Socket* socket)
 {
 	debugPacketType("Explosion\n");
 	readDouble(socket);
@@ -410,7 +416,7 @@ static inline void readExplosion(World* world, Socket* socket)
 	}
 }
 
-static inline void readSoundEffect(World* world, Socket* socket)
+private void readSoundEffect(World* world, Socket* socket)
 {
 	readInt(socket);
 	readInt(socket);
@@ -419,13 +425,13 @@ static inline void readSoundEffect(World* world, Socket* socket)
 	readInt(socket);
 }
 
-static inline void readInvalidState(World* world, Socket* socket)
+private void readInvalidState(World* world, Socket* socket)
 {
 	debugPacketType("New/Invalid State\n");
 	readByte(socket);
 }
 
-static inline void readSetSlot(World* world, Socket* socket)
+private void readSetSlot(World* world, Socket* socket)
 {
 	debugPacketType("Set slot\n");
 
@@ -441,7 +447,7 @@ static inline void readSetSlot(World* world, Socket* socket)
 
 }
 
-static inline void readWindowItems(World* world, Socket* socket)
+private void readWindowItems(World* world, Socket* socket)
 {
 	debugPacketType("Window items\n");
 	
@@ -469,14 +475,14 @@ static inline void readWindowItems(World* world, Socket* socket)
 
 }
 
-static inline void readIncrementStatistic(World* world, Socket* socket)
+private void readIncrementStatistic(World* world, Socket* socket)
 {
 	debugPacketType("Increment Statistic\n");
 	readInt(socket);
 	readByte(socket);
 }
 
-static inline void readKick(World* world, Socket* socket)
+private void readKick(World* world, Socket* socket)
 {
 	debugPacketType("Kick\n");
 	readString16(socket);
@@ -524,7 +530,7 @@ static PacketHandler* packetHandlers[]={
 	[0xff] = readKick,
 };
 
-int updateThread(void* data)
+private int updateThread(void* data)
 {
 
 	World* world=(World*)data;
@@ -540,9 +546,12 @@ int updateThread(void* data)
 		SDL_UnlockMutex(world->writeLock);
 		SDL_Delay(50);
 	}
+
+	return 0;
+
 }
 
-int networkMain(void* data)
+public int networkMain(void* data)
 {
 
 	World* world=(World*)data;

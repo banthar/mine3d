@@ -1,29 +1,35 @@
 
-OBJECTS:=error.o actor.o main.o  noise.o utils.o world.o block.o network.o socket.o
-HEADERS:=actor.h error.h math.h noise.h utils.h world.h block.h network.h socket.h
+OBJECTS:=actor.o client.o  noise.o utils.o world.o block.o network.o socket.o worldgen.o
+HEADERS:=actor.h block.h config.h math.h network.h noise.h socket.h utils.h worldgen.h world.h
 
-PACKAGES:=sdl glew sdl-image gl
+PACKAGES:=sdl glew sdl-image gl ftgl
 
-LIBS:=-lm `pkg-config --libs $(PACKAGES)` -lSDL_net -lstd -lz
-CFLAGS:=-std=c99 -O0 -Wall -march=native -ffast-math `pkg-config --cflags $(PACKAGES)` -g
-LDFLAGS:=
+CFLAGS:=-std=c99 `pkg-config --cflags $(PACKAGES)`
+LDFLAGS:=-lm `pkg-config --libs $(PACKAGES)` -lSDL_net -lz
 
-CC:=gcc-4.6
-LD:=gcc-4.6
+CFLAGS+=-g -Wall -DDEBUG 
+LDFLAGS+=-g -lstd
 
-.PHONY: run debug clean
+# CFLAGS+=-O3 -flto -Werror -Wall
+# LDFLAGS+=-flto
 
-main: $(OBJECTS) $(HEADERS) Makefile
-	$(LD) $(LDFLAGS) $(LIBS) $(OBJECTS) -o main
+.PHONY: run gdb debug clean
 
-$(OBJECTS): %.o: %.c Makefile $(HEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
+debug: client
+
+release: clean client
+
+client: $(OBJECTS)
+
+server: actor.o server.o noise.o utils.o world.o block.o network.o socket.o worldgen.o
+
+$(OBJECTS): Makefile $(HEADERS)
 
 clean: 
 	rm -f $(OBJECTS)
 
-run: main
-	./main
+run: client
+	./client
 
-debug: main
-	gdb ./main --eval-command="run"
+gdb: client
+	gdb ./client --eval-command="run"

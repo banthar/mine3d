@@ -1,7 +1,10 @@
 
+#include "config.h"
+
 #include "actor.h"
+
 #include "world.h"
 
-void actorTick(World* world, Actor* actor)
+public void actorTick(World* world, Actor* actor)
 {
 }

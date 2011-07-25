@@ -12,27 +12,27 @@ typedef struct
 	byte buffer[1024*4];
 }Socket;
 
-uint8_t readByte(Socket* socket);
-uint16_t readShort(Socket* socket);
-uint32_t readInt(Socket* socket);
-uint64_t readLong(Socket* socket);
-bool readBool(Socket* socket);
-float readFloat(Socket* socket);
-double readDouble(Socket* socket);
-void writeByte(Socket* socket, uint8_t n);
-void writeShort(Socket* socket, uint16_t h);
-void writeInt(Socket* socket, uint32_t h);
-void writeLong(Socket* socket, uint64_t h);
-void writeFloat(Socket* socket, float h);
-void writeDouble(Socket* socket, double h);
-void writeBool(Socket* socket, bool n);
-char* readString16(Socket* socket);
-void readStream(Socket* socket);
-void writeString16(Socket* socket, char* utf8_string);
-void socketFlush(Socket* socket);
-void socketWrite(Socket* socket, void* data, int length);
-void socketRead(Socket* socket, void* data, int length);
-void socketInit();
+public uint8_t readByte(Socket* socket);
+public uint16_t readShort(Socket* socket);
+public uint32_t readInt(Socket* socket);
+public uint64_t readLong(Socket* socket);
+public bool readBool(Socket* socket);
+public float readFloat(Socket* socket);
+public double readDouble(Socket* socket);
+public void writeByte(Socket* socket, uint8_t n);
+public void writeShort(Socket* socket, uint16_t h);
+public void writeInt(Socket* socket, uint32_t h);
+public void writeLong(Socket* socket, uint64_t h);
+public void writeFloat(Socket* socket, float h);
+public void writeDouble(Socket* socket, double h);
+public void writeBool(Socket* socket, bool n);
+public char* readString16(Socket* socket);
+public void readStream(Socket* socket);
+public void writeString16(Socket* socket, char* utf8_string);
+public void socketFlush(Socket* socket);
+public void socketWrite(Socket* socket, void* data, int length);
+public void socketRead(Socket* socket, void* data, int length);
+public void socketInit();
 
 
 

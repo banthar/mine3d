@@ -1,101 +1,33 @@
 
+#include "config.h"
+
 #include "world.h"
+
 #include "utils.h"
-#include "error.h"
 #include "noise.h"
 #include "block.h"
 
-#include <stdbool.h>
+#include "SDL.h"
+#include "glew.h"
 #include <math.h>
-#include <SDL.h>
-#include <glew.h>
 #include <stdlib.h>
 #include <pthread.h>
 
-void init();
-void randomize();
-void draw();
-Segment* loadSegment(int x, int y, int z);
-Segment* newSegment();
+private Segment* newSegment();
 
-void worldLock(World* world)
+public void worldLock(World* world)
 {
 	assert(world!=NULL);
 	assert(SDL_LockMutex(world->lock)==0);
 }
 
-void worldUnlock(World* world)
+public void worldUnlock(World* world)
 {
 	assert(world!=NULL);
 	assert(SDL_UnlockMutex(world->lock)==0);
 }
 
-static void generateSegment(World* world, Segment* segment, Vec4i pos)
-{
-
-	segment->empty=true;
-	
-	for(int y=0;y<SEGMENT_SIZE;y++)
-	for(int x=0;x<SEGMENT_SIZE;x++)
-	{
-		
-		Vec2f xy=(Vec2f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE};
-
-		float stoneHeight=0.0;
-		stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.001,0.001})*100;
-		stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.01,0.01})*50;
-		stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.1,0.1})*5;
-
-		if(stoneHeight<0)
-			stoneHeight=-sqrt(-stoneHeight)*1.5;
-
-		float dirtHeight=noise2(&world->noise,xy*(Vec2f){0.01,0.01})*10-1;
-		dirtHeight+=noise2(&world->noise,xy*(Vec2f){0.1,0.1});
-
-		float snowHeight=noise2(&world->noise,xy*(Vec2f){0.01,0.01})*10+50;
-		snowHeight+=noise2(&world->noise,xy*(Vec2f){0.1,0.1})*5;
-
-
-		for(int z=0;z<SEGMENT_SIZE;z++)
-		{
-
-			Vec4f xyz=(Vec4f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE,z+pos[2]*SEGMENT_SIZE};
-
-			if(stoneHeight>xyz[2])
-			{
-				segment->data[z][y][x].id=2;
-			}
-			else if(stoneHeight>xyz[2]-(xyz[2]-snowHeight)/8 && snowHeight<xyz[2])
-			{
-				segment->data[z][y][x].id=3;
-			}
-			else if(dirtHeight>xyz[2])
-			{
-				segment->data[z][y][x].id=1;
-			}
-			else
-			{
-				segment->data[z][y][x].id=0;
-			}
-
-			if(segment->data[z][y][x].id!=0)
-				segment->empty=false;
-
-		}
-
-	}
-
-}
-
-typedef struct
-{
-	Vec4i pos;
-	Vec4f color;
-	Vec4f normal;
-	Vec2f texCoord;
-}Vertex;
-
-Block segmentGet(Segment* this, int x, int y, int z)
+public Block segmentGet(Segment* this, int x, int y, int z)
 {
 	if(x<0 || y<0 || z<0 || x>=SEGMENT_SIZE || y>=SEGMENT_SIZE || z>=SEGMENT_SIZE)
 		return (Block){};
@@ -103,7 +35,7 @@ Block segmentGet(Segment* this, int x, int y, int z)
 		return this->data[z][y][x];
 }
 
-Block worldGet(World* this, Vec4i pos)
+public Block worldGet(World* this, Vec4i pos)
 {
 
 	const Vec4i segment_bits=(Vec4i){SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS};
@@ -127,7 +59,7 @@ Block worldGet(World* this, Vec4i pos)
 }
 
 
-void worldSet(World* this, Vec4i pos, Block block)
+public void worldSet(World* this, Vec4i pos, Block block)
 {
 
 	const Vec4i segment_bits=(Vec4i){SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS};
@@ -158,7 +90,7 @@ void worldSet(World* this, Vec4i pos, Block block)
 
 }
 
-void renderSegment(World* world, Segment* this, Vec4i pos)
+private void renderSegment(World* world, Segment* this, Vec4i pos)
 {
 
 	assert(this!=NULL);
@@ -217,15 +149,6 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 				{ 1, 0, 0},
 			};
 
-			static const Vec4b colors[]={
-				{96,96,96,255},
-				{255,255,255,255},
-				{128,128,128,255},
-				{224,224,224,255},
-				{192,192,192,255},
-				{160,160,160,255},
-			};
-
 			switch(block_definition[block.id].draw_mode)
 			{
 				case DRAW_NONE:
@@ -270,8 +193,8 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 						{
 							assert(n<max_vertices);
 							data[n].pos=loc+face[i][v];
-							data[n].color=(Vec4f){normalBlock.light,normalBlock.light,normalBlock.light,1};
-							data[n].normal=(Vec4f){0,0,normalBlock.skyLight,1};
+							float light=clampf(normalBlock.light+normalBlock.skyLight,0.2,1);
+							data[n].color=(Vec4f){light,light,light,1};
 							if(block_definition[block.id].color_mode==COLOR_GRASS)
 								data[n].color*=(Vec4f){0.2,1,0.1,1};
 
@@ -293,7 +216,10 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 		return;
 
 	this->n=n;
-	glGenBuffers(1,&this->vbo);
+
+	if(this->vbo==0)
+		glGenBuffers(1,&this->vbo);
+
 	glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(*data)*n, data, GL_STATIC_DRAW);
 	
@@ -301,7 +227,7 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 
 }
 
-void drawSegment(World* world, Segment* this, Vec4i pos)
+private void drawSegment(World* world, Segment* this, Vec4i pos)
 {
 
 	if(this!=NULL && this->rendered && this->vbo!=0)
@@ -310,12 +236,10 @@ void drawSegment(World* world, Segment* this, Vec4i pos)
 		glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
 		glVertexPointer(3, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex,pos));
 		glColorPointer(4, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex,color));
-		glNormalPointer(GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex,normal));
 		glTexCoordPointer(2,GL_FLOAT,sizeof(Vertex), (void*)offsetof(Vertex,texCoord));
 
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glEnableClientState(GL_COLOR_ARRAY);
-		glEnableClientState(GL_NORMAL_ARRAY);
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		glDrawArrays(GL_QUADS, 0, this->n);
 
@@ -357,13 +281,13 @@ void drawSegment(World* world, Segment* this, Vec4i pos)
 
 static int allocated_segments=0;
 
-Segment* newSegment()
+private Segment* newSegment()
 {
 	allocated_segments++;
 	return calloc(1,sizeof(Segment));
 }
 
-void freeSegment(Segment* this)
+private void freeSegment(Segment* this)
 {
 	
 	if(this==NULL)
@@ -378,38 +302,7 @@ void freeSegment(Segment* this)
 	
 }
 
-void worldInit(World *this)
-{
-	
-	*this=(World){};
-
-	this->lock=SDL_CreateMutex();
-	this->writeLock=SDL_CreateMutex();
-
-	noiseInit(&this->noise,666);
-
-	this->terrain=loadTexture("terrain.png");
-	assert(this->terrain!=0);
-
-	this->player.pos=(Vec4f){0,0,16};
-
-}
-
-void worldDestroy(World* this)
-{
-
-	glDeleteTextures(1,&this->terrain);
-
-	for(int z=0;z<VIEW_RANGE;z++)
-	for(int y=0;y<VIEW_RANGE;y++)
-	for(int x=0;x<VIEW_RANGE;x++)
-	{
-		freeSegment(this->segment[z][y][x]);
-	}
-
-}
-
-static inline void worldSpiral(World* this, void (f)(World*,int x,int y,int z))
+private void worldSpiral(World* this, void (f)(World*,int x,int y,int z))
 {
 	
 	int c=VIEW_RANGE/2;
@@ -432,7 +325,7 @@ static inline void worldSpiral(World* this, void (f)(World*,int x,int y,int z))
 	
 }
 
-bool worldEvent(World* this, const SDL_Event* event)
+public bool worldEvent(World* this, const SDL_Event* event)
 {
 	
 	switch(event->type)
@@ -450,8 +343,10 @@ bool worldEvent(World* this, const SDL_Event* event)
 	}
 }
 
-void worldTick(World* this)
+public void worldTick(World* this)
 {
+
+	this->ticks=this->lastSyncTicks+(SDL_GetTicks()-this->lastSyncTime)*20/1000;
 
 	//int t=SDL_GetTicks();	
 	Uint8 *keys = SDL_GetKeyState(NULL);
@@ -478,17 +373,17 @@ void worldTick(World* this)
 	if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
 	{
 		v=0.01*this->player.pos[0];
-		v=100;
+		v=0.1;
 	}
 	
 	this->player.pos[0]-=sin(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
 	this->player.pos[1]-=cos(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
-	this->player.pos[2]-=cos(this->player.rot[1])*vy*v;
+	//this->player.pos[2]-=cos(this->player.rot[1])*vy*v;
 
 	this->player.pos[0]-=-cos(this->player.rot[0])*vx*v;
 	this->player.pos[1]-=sin(this->player.rot[0])*vx*v;
 
-	int id=worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]}).id;
+	int id=worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]-1.6}).id;
 
 	if(id==0)
 	{
@@ -557,7 +452,7 @@ void worldTick(World* this)
 
 }
 
-void worldDrawSegment(World *this,int x, int y, int z)
+private void worldDrawSegment(World *this,int x, int y, int z)
 {
 
 	Vec4i pos=(Vec4i){x,y,z}+this->scroll;
@@ -570,19 +465,7 @@ void worldDrawSegment(World *this,int x, int y, int z)
 	}
 */
 
-	if(
-		this->segment[z][y][x]!=NULL &&
-		this->segment[z][y][x]->rendered==false &&
-		SDL_GetTicks()-this->time<40 /*&&
-
-		this->segment[z+1][y][x]!=NULL &&
-		this->segment[z-1][y][x]!=NULL &&
-
-		this->segment[z][y+1][x]!=NULL &&
-		this->segment[z][y-1][x]!=NULL &&
-
-		this->segment[z][y][x+1]!=NULL &&
-		this->segment[z][y][x-1]!=NULL */)
+	if(	this->segment[z][y][x]!=NULL &&	this->segment[z][y][x]->rendered==false && SDL_GetTicks()-this->drawStart<10)
 	{
 		renderSegment(this, this->segment[z][y][x], pos);
 	}
@@ -592,18 +475,22 @@ void worldDrawSegment(World *this,int x, int y, int z)
 }
 
 
-void worldDraw(World *this)
+public void worldDraw(World *world)
 {
 
-	this->time=SDL_GetTicks();
+	world->drawStart=SDL_GetTicks();
+
+	char buf[1024];
+	sprintf(buf,"x:%f y:%f z:%f (%f %f)",world->player.pos[0],world->player.pos[1],world->player.pos[2],world->player.rot[0],world->player.rot[1]);
+	ftglRenderFont(world->font, buf, FTGL_RENDER_ALL);
 
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	
-	glRotatef(this->player.rot[1]*180/M_PI,1,0,0);
-	glRotatef(this->player.rot[0]*180/M_PI,0,0,1);
+	glRotatef(world->player.rot[1]*180/M_PI,1,0,0);
+	glRotatef(world->player.rot[0]*180/M_PI,0,0,1);
 
-	glTranslated(-this->player.pos[0],-this->player.pos[1],-this->player.pos[2]);
+	glTranslated(-world->player.pos[0],-world->player.pos[1],-world->player.pos[2]);
 
 	glBegin(GL_LINES);
 	int n=16;
@@ -622,18 +509,54 @@ void worldDraw(World *this)
 	glEnable(GL_TEXTURE_2D);
 	glAlphaFunc(GL_GREATER,0.1);
 
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-
-	glLightfv(GL_LIGHT0, GL_POSITION, (float[]){ 0.0, 0.0, 1.0, 0.0 });
+	//float daytime=(world->ticks%24000ull)/24000.0;
 
 	glMatrixMode(GL_MODELVIEW);
 
-	glBindTexture(GL_TEXTURE_2D, this->terrain);
+	glBindTexture(GL_TEXTURE_2D, world->terrain);
 
-	worldSpiral(this,worldDrawSegment);
+	worldSpiral(world,worldDrawSegment);
+
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
+
+
+}
+
+
+public void worldInit(World *this)
+{
+	
+	*this=(World){};
+
+	this->lock=SDL_CreateMutex();
+	this->writeLock=SDL_CreateMutex();
+
+	noiseInit(&this->noise,666);
+
+	this->terrain=loadTexture("terrain.png");
+	assert(this->terrain!=0);
+
+	this->font=ftglCreateBitmapFont("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSansMono.ttf");
+	assert(this->font!=NULL);
+	ftglSetFontFaceSize(this->font, 18, 0);
+
+	this->player.pos=(Vec4f){0,0,16};
+
+}
+
+public void worldDestroy(World* this)
+{
+
+	glDeleteTextures(1,&this->terrain);
+
+	for(int z=0;z<VIEW_RANGE;z++)
+	for(int y=0;y<VIEW_RANGE;y++)
+	for(int x=0;x<VIEW_RANGE;x++)
+	{
+		freeSegment(this->segment[z][y][x]);
+	}
+
 }
 

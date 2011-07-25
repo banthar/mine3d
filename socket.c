@@ -1,10 +1,10 @@
 
+#include "config.h"
+
 #include "socket.h"
 
 #include "SDL_net.h"
-
 #include <iconv.h>
-#include <std.h>
 #include <endian.h>
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN 
@@ -27,35 +27,35 @@
 static iconv_t conv_ucs2_to_utf8;
 static iconv_t conv_utf8_to_ucs2;
 
-uint8_t readByte(Socket* socket)
+public uint8_t readByte(Socket* socket)
 {
 	uint8_t n;
 	socketRead(socket,&n,sizeof(n));
 	return n;
 }
 
-uint16_t readShort(Socket* socket)
+public uint16_t readShort(Socket* socket)
 {
 	uint16_t n;
 	socketRead(socket,&n,sizeof(n));
 	return ntoh16(n);
 }
 
-uint32_t readInt(Socket* socket)
+public uint32_t readInt(Socket* socket)
 {
 	uint32_t n;
 	socketRead(socket,&n,sizeof(n));
 	return ntoh32(n);
 }
 
-uint64_t readLong(Socket* socket)
+public uint64_t readLong(Socket* socket)
 {
 	uint64_t n;
 	socketRead(socket,&n,sizeof(n));
 	return ntoh64(n);
 }
 
-bool readBool(Socket* socket)
+public bool readBool(Socket* socket)
 {
 	switch(readByte(socket))
 	{
@@ -68,14 +68,14 @@ bool readBool(Socket* socket)
 	}
 }
 
-float readFloat(Socket* socket)
+public float readFloat(Socket* socket)
 {
 	union{float f;uint32_t i;}u;
 	u.i=readInt(socket);
 	return u.f;
 }
 
-double readDouble(Socket* socket)
+public double readDouble(Socket* socket)
 {
 	union{double f;uint64_t i;}u;
 	u.i=readLong(socket);
@@ -84,30 +84,30 @@ double readDouble(Socket* socket)
 
 // Write
 
-void writeByte(Socket* socket, uint8_t n)
+public void writeByte(Socket* socket, uint8_t n)
 {
 	socketWrite(socket, &n, sizeof(n));
 }
 
-void writeShort(Socket* socket, uint16_t h)
+public void writeShort(Socket* socket, uint16_t h)
 {
 	uint16_t n=hton16(h);
 	socketWrite(socket, &n, sizeof(n));
 }
 
-void writeInt(Socket* socket, uint32_t h)
+public void writeInt(Socket* socket, uint32_t h)
 {
 	uint32_t n=hton32(h);
 	socketWrite(socket, &n, sizeof(n));
 }
 
-void writeLong(Socket* socket, uint64_t h)
+public void writeLong(Socket* socket, uint64_t h)
 {
 	uint64_t n=hton64(h);
 	socketWrite(socket, &n, sizeof(n));
 }
 
-void writeFloat(Socket* socket, float h)
+public void writeFloat(Socket* socket, float h)
 {
 	uint32_t n;
 	float* bytes=(float*)&n;
@@ -115,7 +115,7 @@ void writeFloat(Socket* socket, float h)
 	writeInt(socket,n);
 }
 
-void writeDouble(Socket* socket, double h)
+public void writeDouble(Socket* socket, double h)
 {
 	uint64_t n;
 	double* bytes=(double*)&n;
@@ -123,13 +123,13 @@ void writeDouble(Socket* socket, double h)
 	writeLong(socket,n);
 }
 
-void writeBool(Socket* socket, bool n)
+public void writeBool(Socket* socket, bool n)
 {
 	writeByte(socket,n!=false);
 }
 
 
-char* readString16(Socket* socket)
+public char* readString16(Socket* socket)
 {
 
 	int length=readShort(socket);
@@ -158,7 +158,7 @@ char* readString16(Socket* socket)
 
 }
 
-void readStream(Socket* socket)
+public void readStream(Socket* socket)
 {
 
 	while(true)
@@ -206,7 +206,7 @@ void readStream(Socket* socket)
 
 }
 
-void writeString16(Socket* socket, char* utf8_string)
+public void writeString16(Socket* socket, char* utf8_string)
 {
 	int length=strlen(utf8_string);
 
@@ -231,13 +231,11 @@ void writeString16(Socket* socket, char* utf8_string)
 
 }
 
-void socketFlush(Socket* socket)
+public void socketFlush(Socket* socket)
 {
 
 	if(socket->buffer_length==0)
 		return;
-
-	int l=socket->buffer_length;
 
 	int ret=SDLNet_TCP_Send(socket->socket, socket->buffer, socket->buffer_length);
 
@@ -250,7 +248,7 @@ void socketFlush(Socket* socket)
 
 }
 
-void socketWrite(Socket* socket, void* data, int length)
+public void socketWrite(Socket* socket, void* data, int length)
 {
 
 	if(socket->buffer_length+length>=sizeof(socket->buffer))
@@ -263,7 +261,7 @@ void socketWrite(Socket* socket, void* data, int length)
 	
 }
 
-void socketRead(Socket* socket, void* data, int length)
+public void socketRead(Socket* socket, void* data, int length)
 {
 	int ret=SDLNet_TCP_Recv(socket->socket, data, length);
 
@@ -271,7 +269,7 @@ void socketRead(Socket* socket, void* data, int length)
 		panic("read error");
 }
 
-void socketInit()
+public void socketInit()
 {
 	conv_ucs2_to_utf8=iconv_open("UTF-8","UCS-2BE");
 	conv_utf8_to_ucs2=iconv_open("UCS-2BE","UTF-8");

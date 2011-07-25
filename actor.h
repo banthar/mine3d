@@ -17,4 +17,4 @@ typedef struct
 struct World;
 typedef struct World World;
 
-void actorTick(World* world, Actor* actor);
+public void actorTick(World* world, Actor* actor);

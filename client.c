@@ -1,33 +1,30 @@
 
-//#include "error.h"
+#include "config.h"
+
 #include "world.h"
 #include "utils.h"
 #include "network.h"
 
-#include <std.h>
 #include <signal.h>
-
-#include <stdbool.h>
 #include "SDL.h"
 #include "SDL_net.h"
 #include "glew.h"
 
-SDL_Surface* screen;
-bool fullscreen=false;
-SDL_Rect window_rect={0,0,720,420};
-SDL_Rect fullscreen_rect;
-bool grab_mouse=false;
-World world;
-GLuint screen_texture;
+static SDL_Surface* screen;
+static bool fullscreen=false;
+static SDL_Rect window_rect={0,0,720,420};
+static SDL_Rect fullscreen_rect;
+static bool grab_mouse=false;
+static World world;
 
-void grabMouse()
+private void grabMouse()
 {
 	SDL_ShowCursor(!grab_mouse);
 	SDL_WM_GrabInput(grab_mouse?SDL_GRAB_ON:SDL_GRAB_OFF);	
 }
 
 
-void initVideo()
+private void initVideo()
 {
 	if(fullscreen)
 		screen=SDL_SetVideoMode(fullscreen_rect.w,fullscreen_rect.h,0,SDL_OPENGL|SDL_FULLSCREEN);
@@ -52,14 +49,14 @@ void initVideo()
 
 }
 
-__attribute__((noreturn)) void quit()
+private __attribute__((noreturn)) void quit()
 {
 	worldDestroy(&world);
 	SDL_Quit();
 	exit(0);
 }
 
-bool handleEvent(const SDL_Event* event)
+private bool handleEvent(const SDL_Event* event)
 {
 	switch(event->type)
 	{
@@ -93,7 +90,7 @@ bool handleEvent(const SDL_Event* event)
 	}
 }
 
-int main(int argc, char* argv[])
+export int main(int argc, char* argv[])
 {
 
 	if(SDL_Init(SDL_INIT_VIDEO)!=0)
@@ -114,10 +111,9 @@ int main(int argc, char* argv[])
 
 	if(glewInit()!=GLEW_OK)
 		panic("glew error");
-	screen_texture=emptyTexture(1,1);
+	//GLint screen_texture=emptyTexture(1,1);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	//screen_texture=loadTexture("terrain.png");
 
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -125,8 +121,7 @@ int main(int argc, char* argv[])
 	worldInit(&world);
 	worldLock(&world);
 
-	SDL_Thread *network_thread = SDL_CreateThread(networkMain, &world);
-
+	SDL_CreateThread(networkMain, &world);
 
 	while(true)
 	{

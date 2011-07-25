@@ -1,11 +1,15 @@
 
-#include <glew.h>
-#include <SDL.h>
-#include <SDL_image.h>
+#include "config.h"
+
+#include "utils.h"
 
 #include "math.h"
 
-GLuint emptyTexture(int width, int height)
+#include "glew.h"
+#include "SDL.h"
+#include "SDL_image.h"
+
+public GLuint emptyTexture(int width, int height)
 {
 	
 	int data[width*height];
@@ -28,7 +32,7 @@ GLuint emptyTexture(int width, int height)
 		 
 }
 
-GLuint loadTexture(const char* filename)
+public GLuint loadTexture(const char* filename)
 {
 
     SDL_Surface *surface=IMG_Load(filename);
@@ -56,3 +60,4 @@ GLuint loadTexture(const char* filename)
 
     return texture;
 }
+

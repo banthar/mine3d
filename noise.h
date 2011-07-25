@@ -8,6 +8,6 @@ typedef struct
 	int perm[256];
 }Noise;
 
-void noiseInit(Noise* noise, unsigned int seed);
+public void noiseInit(Noise* noise, unsigned int seed);
 
-float noise2(const Noise* noise, Vec2f pos);
+public float noise2(const Noise* noise, Vec2f pos);

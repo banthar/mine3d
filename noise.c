@@ -1,4 +1,6 @@
 
+#include "config.h"
+
 #include "noise.h"
 
 #include <math.h>
@@ -30,7 +32,7 @@ static const Vec4f grad4[]= {
 	{-1, 1, 1, 0}, {-1, 1,-1, 0}, {-1,-1, 1, 0}, {-1,-1,-1, 0}
 };
 
-void noiseInit(Noise* noise, unsigned int seed)
+public void noiseInit(Noise* noise, unsigned int seed)
 {
 	for(int i = 0; i < 256; ++i)
 	{
@@ -38,13 +40,13 @@ void noiseInit(Noise* noise, unsigned int seed)
 	}
 }
 
-static float dot(Vec2f a, Vec2f b)
+private float dot(Vec2f a, Vec2f b)
 {
 	return a[0]*b[0]+a[1]*b[1];
 }
 
 
-int hash(Vec4i seed)
+private int hash(Vec4i seed)
 {
 
 	return (((seed[0]&1)+(seed[1]&1)))*0x3fffffff;
@@ -64,13 +66,13 @@ int hash(Vec4i seed)
 }
 
 
-static inline int fastFloor(float x)
+private int fastFloor(float x)
 {
 	return x>0.0?(int)x:(int)x-1;
 }
 
 
-float noise2(const Noise* noise, Vec2f pos)
+public float noise2(const Noise* noise, Vec2f pos)
 {
 
 	const float F2=(sqrt(3.0)-1.0)/2.0;
