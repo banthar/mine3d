@@ -2,7 +2,8 @@
 #pragma once
 
 #include "SDL_net.h"
-#include <std.h>
+#include <stdbool.h>
+#include <std/types.h>
 
 typedef struct
 {
@@ -25,7 +26,7 @@ void writeLong(Socket* socket, uint64_t h);
 void writeFloat(Socket* socket, float h);
 void writeDouble(Socket* socket, double h);
 void writeBool(Socket* socket, bool n);
-void readString16(Socket* socket);
+char* readString16(Socket* socket);
 void readStream(Socket* socket);
 void writeString16(Socket* socket, char* utf8_string);
 void socketFlush(Socket* socket);

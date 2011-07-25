@@ -32,7 +32,7 @@ static inline void sendHandShake(World* world, Socket* socket)
 	writeString16(socket,playerName);
 }
 
-static inline void sendPlayerPositionAndLook(World* world, Socket* socket)
+void sendPlayerPositionAndLook(World* world, Socket* socket)
 {
 
 	world->player.stance=world->player.pos[2]+1.62;
@@ -46,7 +46,7 @@ static inline void sendPlayerPositionAndLook(World* world, Socket* socket)
 	writeFloat(socket,world->player.rot[1]);
 	writeBool(socket,world->player.on_ground);
 
-	//printf("pos: (%f %f %f)\n",world->player.pos[0],world->player.pos[1],world->player.pos[2]);
+	printf("pos: (%f %f %f)\n",world->player.pos[0],world->player.pos[1],world->player.pos[2]);
 
 }
 
@@ -158,14 +158,21 @@ static inline void readAnimation(World* world, Socket* socket)
 static inline void readNamedEntitySpawn(World* world, Socket* socket)
 {
 	debugPacketType("Named Entity Spawn\n");
-	readInt(socket);
-	readString16(socket);
-	readInt(socket);
-	readInt(socket);
-	readInt(socket);
-	readByte(socket);
-	readByte(socket);
-	readShort(socket);
+	int id=readInt(socket);
+	char* name=readString16(socket);
+	int x=readInt(socket);
+	int z=readInt(socket);
+	int y=readInt(socket);
+	int rotation=readByte(socket);
+	int pitch=readByte(socket);
+	int currentItem=readShort(socket);
+
+	worldLock(world);
+
+	printf("%s connected\n",name);
+
+	worldUnlock(world);
+
 }
 
 static inline void readPickupSpawn(World* world, Socket* socket)
@@ -189,6 +196,23 @@ static inline void readCollectItem(World* world, Socket* socket)
 
 	readInt(socket);
 	readInt(socket);
+}
+
+static inline void readAddObject(World* world, Socket* socket)
+{
+	PACKET_DEBUG_START(0x17,"Add Object/Vehicle");
+	readInt(socket);
+	readByte(socket);
+	readInt(socket);
+	readInt(socket);
+	readInt(socket);
+	int flag=readInt(socket);
+	if(flag)
+	{
+		readShort(socket);
+		readShort(socket);
+		readShort(socket);
+	}
 }
 
 static inline void readMobSpawn(World* world, Socket* socket)
@@ -313,7 +337,7 @@ static inline void readMapChunk(World* world, Socket* socket)
 	{
 		byte block_id=uncompressed[pos];
 		pos++;
-		worldSet(world, (Vec4i){x0+x,z0+z,y0+y}, (Block){.id=block_id!=0});
+		worldSet(world, (Vec4i){z0+z,x0+x,y0+y}, (Block){.id=block_id});
 
 
 	}
@@ -364,6 +388,15 @@ static inline void readExplosion(World* world, Socket* socket)
 		readByte(socket);
 		readByte(socket);
 	}
+}
+
+static inline void readSoundEffect(World* world, Socket* socket)
+{
+	readInt(socket);
+	readInt(socket);
+	readByte(socket);
+	readInt(socket);
+	readInt(socket);
 }
 
 static inline void readInvalidState(World* world, Socket* socket)
@@ -447,6 +480,7 @@ static PacketHandler* packetHandlers[]={
 	[0x14] = readNamedEntitySpawn,
 	[0x15] = readPickupSpawn,
 	[0x16] = readCollectItem,
+	[0x17] = readAddObject,
 	[0x18] = readMobSpawn,
 
 	[0x1c] = readEntityVelocity,
@@ -462,12 +496,31 @@ static PacketHandler* packetHandlers[]={
 	[0x34] = readMultiBlockChange,
 	[0x35] = readBlockChange,
 	[0x3c] = readExplosion,
+	[0x3d] = readSoundEffect,
 	[0x46] = readInvalidState,
 	[0x67] = readSetSlot,
 	[0x68] = readWindowItems,
 	[0xc8] = readIncrementStatistic,
 	[0xff] = readKick,
 };
+
+int updateThread(void* data)
+{
+
+	World* world=(World*)data;
+	assert(world!=NULL);
+
+	while(true)
+	{
+		SDL_LockMutex(world->writeLock);
+		SDL_LockMutex(world->lock);
+		sendPlayerPositionAndLook(world, world->socket);
+		SDL_UnlockMutex(world->lock);
+		socketFlush(world->socket);
+		SDL_UnlockMutex(world->writeLock);
+		SDL_Delay(50);
+	}
+}
 
 int networkMain(void* data)
 {
@@ -494,11 +547,20 @@ int networkMain(void* data)
 
 	sendHandShake(world,&socket);
 
+	SDL_Thread* thread=NULL;
+
+	printf("world: %p\n",world);
+	printf("writeLock: %p\n",world->writeLock);
+	SDL_LockMutex(world->writeLock);
+
 	while(true)
 	{
 
 		socketFlush(&socket);
+		SDL_UnlockMutex(world->writeLock);
 		byte packet_id=readByte(&socket);
+
+		SDL_LockMutex(world->writeLock);
 
 		//printf("%02x: \n",packet_id);
 
@@ -514,14 +576,18 @@ int networkMain(void* data)
 		}
 
 		//SDL_Delay(1);
-		worldLock(world);
+		//SDL_LockMutex(world->lock);
 
-		world->player.pos[2]-=0.1;
 
-		if(stage>=3)
-			sendPlayerPositionAndLook(world,&socket);
+		if(stage>=3 && thread==NULL)
+		{
+			world->socket=&socket;
+			thread=SDL_CreateThread(updateThread, world);
+		}
 
-		worldUnlock(world);
+		//SDL_UnlockMutex(world->lock);
+
+		
 
 	}
 

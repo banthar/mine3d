@@ -4,12 +4,13 @@
 #include "math.h"
 #include "noise.h"
 #include "actor.h"
+#include "socket.h"
 
 #include <stdbool.h>
 #include <glew.h>
 #include <SDL.h>
 
-#define SEGMENT_BITS 5
+#define SEGMENT_BITS 4
 #define SEGMENT_MASK ((1<<SEGMENT_BITS)-1)
 #define SEGMENT_SIZE (1<<SEGMENT_BITS)
 #define SEGMENT_SIZEV (Vec4i){SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE,SEGMENT_SIZE}
@@ -19,7 +20,10 @@
 
 typedef struct
 {
-	int id;
+	byte id;
+	byte metadata;
+	byte light;
+	byte skyLight;
 }Block;
 
 typedef struct
@@ -40,6 +44,8 @@ struct World
 	
 	Actor player;
 	
+	//Actor* actors[4096];
+
 	Vec4i scroll;
 	
 	GLuint terrain;
@@ -47,7 +53,9 @@ struct World
 	Noise noise;
 
 	SDL_mutex *lock;
-
+	SDL_mutex *writeLock;
+	Socket* socket;
+	
 };
 
 void worldInit(World* this);

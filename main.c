@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
 		if(delay>0)
 			SDL_Delay(delay);
 
-		worldUnlock(&world);
+		worldLock(&world);
 			
 	}
 		

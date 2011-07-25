@@ -129,7 +129,7 @@ void writeBool(Socket* socket, bool n)
 }
 
 
-void readString16(Socket* socket)
+char* readString16(Socket* socket)
 {
 
 	int length=readShort(socket);
@@ -153,6 +153,8 @@ void readString16(Socket* socket)
 	}
 
 	//printf("string: '%s'\n",utf8_string);
+
+	return strdup(utf8_string);
 
 }
 
@@ -235,12 +237,17 @@ void socketFlush(Socket* socket)
 	if(socket->buffer_length==0)
 		return;
 
+	int l=socket->buffer_length;
+
 	int ret=SDLNet_TCP_Send(socket->socket, socket->buffer, socket->buffer_length);
 
 	if(ret!=socket->buffer_length)
+	{
 		panic("write error");
+	}
 
 	socket->buffer_length=0;
+
 }
 
 void socketWrite(Socket* socket, void* data, int length)
@@ -253,6 +260,7 @@ void socketWrite(Socket* socket, void* data, int length)
 
 	memcpy(socket->buffer+socket->buffer_length,data,length);
 	socket->buffer_length+=length;
+	
 }
 
 void socketRead(Socket* socket, void* data, int length)

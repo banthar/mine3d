@@ -5,7 +5,7 @@ HEADERS:=actor.h error.h math.h noise.h utils.h world.h block.h network.h socket
 PACKAGES:=sdl glew sdl-image gl
 
 LIBS:=-lm `pkg-config --libs $(PACKAGES)` -lSDL_net -lstd -lz
-CFLAGS:=-std=c99 -O3 -Wall -march=native -ffast-math `pkg-config --cflags $(PACKAGES)` -g
+CFLAGS:=-std=c99 -O0 -Wall -march=native -ffast-math `pkg-config --cflags $(PACKAGES)` -g
 LDFLAGS:=
 
 CC:=gcc-4.6

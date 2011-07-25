@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "error.h"
 #include "noise.h"
+#include "block.h"
 
 #include <stdbool.h>
 #include <math.h>
@@ -178,8 +179,10 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 
 		Vec4i loc=pos*SEGMENT_SIZEV+(Vec4i){x,y,z};
 
+		int id=this->data[z][y][x].id;
+
 		//if(worldGet(world,loc)!=0)
-		if(this->data[z][y][x].id!=0)
+		if(id!=0)
 		{
 
 			static const Vec4i face[6][4]={
@@ -191,6 +194,13 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 
 				{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
 				{{1,1,0},{1,0,0},{1,0,1},{1,1,1}},
+			};
+
+			static const Vec4i tree_face[4][4]={
+				{{1,0,0},{0,1,0},{0,1,1},{1,0,1}},
+				{{0,1,0},{1,0,0},{1,0,1},{0,1,1}},
+				{{1,1,0},{0,0,0},{0,0,1},{1,1,1}},
+				{{0,0,0},{1,1,0},{1,1,1},{0,0,1}},
 			};
 
 			static const int texCoord[4][2]={
@@ -215,30 +225,60 @@ void renderSegment(World* world, Segment* this, Vec4i pos)
 				{160,160,160,255},
 			};
 
-			static const int textures[][6]={
-				{ 0, 0, 0, 0, 0, 0},
-				{ 2, 0, 3, 3, 3, 3},
-				{ 1, 1, 1, 1, 1, 1},
-				{66,66,66,66,66,66},
-			};
-
-			for(int i=0;i<6;i++)
+			switch(block_definition[id].draw_mode)
 			{
+				case DRAW_NONE:
+					break;
+				case DRAW_TREE:
+					for(int i=0;i<4;i++)
+					{
+						int tile_id=block_definition[id].textures[i];
+
+						int tileX=tile_id%TEXTURE_SIZE;
+						int tileY=tile_id/TEXTURE_SIZE;
+
+						for(int v=0;v<4;v++)
+						{
+							assert(n<max_vertices);
+							data[n].pos=loc+tree_face[i][v];
+							data[n].color=(Vec4b){255,255,255,255};
+							if(block_definition[id].color_mode==COLOR_GRASS)
+								data[n].color*=(Vec4b){0,1,0,1};
+							data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
+							n++;
+						}
+
+					}
+					break;
+				case DRAW_BLOCK:
+					for(int i=0;i<6;i++)
+					{
 			
-				if(worldGet(world,loc+normal[i]).id != 0)
-					continue;
+						if(block_definition[worldGet(world,loc+normal[i]).id].transparent==false)
+							continue;
 
-				int tileX=(textures[this->data[z][y][x].id][i])%TEXTURE_SIZE;
-				int tileY=(textures[this->data[z][y][x].id][i])/TEXTURE_SIZE;
 
-				for(int v=0;v<4;v++)
-				{
-					assert(n<max_vertices);
-					data[n].pos=loc+face[i][v];
-					data[n].color=colors[i];
-					data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
-					n++;
-				}
+						int tile_id=block_definition[id].textures[i];
+
+						int tileX=tile_id%TEXTURE_SIZE;
+						int tileY=tile_id/TEXTURE_SIZE;
+
+						for(int v=0;v<4;v++)
+						{
+							assert(n<max_vertices);
+							data[n].pos=loc+face[i][v];
+							data[n].color=colors[i];
+							if(block_definition[id].color_mode==COLOR_GRASS)
+								data[n].color*=(Vec4b){0,1,0,1};
+
+							data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
+							n++;
+						}
+
+					}
+					break;
+				default:
+					break;
 
 			}
 
@@ -338,11 +378,12 @@ void worldInit(World *this)
 	*this=(World){};
 
 	this->lock=SDL_CreateMutex();
+	this->writeLock=SDL_CreateMutex();
 
 	noiseInit(&this->noise,666);
 
-	//this->terrain=loadTexture("terrain.png");
-	//assert(this->terrain!=0);
+	this->terrain=loadTexture("terrain.png");
+	assert(this->terrain!=0);
 
 	this->player.pos=(Vec4f){0,0,16};
 
@@ -441,6 +482,18 @@ void worldTick(World* this)
 	this->player.pos[0]-=-cos(this->player.rot[0])*vx*v;
 	this->player.pos[1]-=sin(this->player.rot[0])*vx*v;
 
+	int id=worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]}).id;
+
+	if(id==0)
+	{
+		this->player.pos[2]-=0.1;
+		this->player.on_ground=false;
+	}
+	else
+	{
+		this->player.on_ground=true;
+	}
+
 /*
 	while(worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]-3})!=0)
 	{
@@ -488,6 +541,9 @@ void worldTick(World* this)
 		this->scroll=scroll;
 
 	}
+
+	//if(this->socket!=NULL)
+	//	sendPlayerPositionAndLook(this, this->socket);
 
 	//printf("ticks: %i ",SDL_GetTicks()-t);
 	//printf("segments: %i ",allocated_segments);
@@ -556,8 +612,11 @@ void worldDraw(World *this)
 
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_ALPHA_TEST);
 	glEnable(GL_TEXTURE_2D);
-	
+	//glEnable(GL_BLEND);
+	glAlphaFunc(GL_GREATER,0.1);
+
 	glMatrixMode(GL_MODELVIEW);
 
 	glBindTexture(GL_TEXTURE_2D, this->terrain);
@@ -567,3 +626,4 @@ void worldDraw(World *this)
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 }
+
