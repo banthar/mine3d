@@ -343,11 +343,8 @@ public bool worldEvent(World* this, const SDL_Event* event)
 	}
 }
 
-public void worldTick(World* this)
+private void playerTick(World* world)
 {
-
-	this->ticks=this->lastSyncTicks+(SDL_GetTicks()-this->lastSyncTime)*20/1000;
-
 	//int t=SDL_GetTicks();	
 	Uint8 *keys = SDL_GetKeyState(NULL);
 
@@ -372,37 +369,43 @@ public void worldTick(World* this)
 	}
 	if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
 	{
-		v=0.01*this->player.pos[0];
-		v=0.1;
+		//v=0.01*world->player.pos[0];
+		//v=0.1;
 	}
 	
-	this->player.pos[0]-=sin(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
-	this->player.pos[1]-=cos(this->player.rot[0])*sin(this->player.rot[1])*vy*v;
-	//this->player.pos[2]-=cos(this->player.rot[1])*vy*v;
+	world->player.pos[0]-=sin(world->player.rot[0])*sin(world->player.rot[1])*vy*v;
+	world->player.pos[1]-=cos(world->player.rot[0])*sin(world->player.rot[1])*vy*v;
+	world->player.pos[2]-=cos(world->player.rot[1])*vy*v;
 
-	this->player.pos[0]-=-cos(this->player.rot[0])*vx*v;
-	this->player.pos[1]-=sin(this->player.rot[0])*vx*v;
+	world->player.pos[0]-=-cos(world->player.rot[0])*vx*v;
+	world->player.pos[1]-=sin(world->player.rot[0])*vx*v;
 
-	int id=worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]-1.6}).id;
+	if(keys[SDLK_LSHIFT])
+		return;
+
+	int id=worldGet(world,(Vec4i){world->player.pos[0],world->player.pos[1],world->player.pos[2]-1.6}).id;
 
 	if(id==0)
 	{
-		this->player.pos[2]-=0.1;
-		this->player.on_ground=false;
+		//world->player.pos[2]-=0.1;
+		world->player.on_ground=false;
 	}
 	else
 	{
-		this->player.on_ground=true;
+		//world->player.on_ground=true;
 	}
 
-/*
-	while(worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]-3})!=0)
-	{
-		printf("%i\n",worldGet(this,(Vec4i){this->player.pos[0],this->player.pos[1],this->player.pos[2]}));
-		this->player.pos[2]+=1.0;
-	}
-*/
+}
+
+public void worldTick(World* this)
+{
+
+	this->ticks=this->lastSyncTicks+(SDL_GetTicks()-this->lastSyncTime)*20/1000;
 	
+	playerTick(this);
+
+	actorTick(this,&this->player);
+
 	Vec4i scroll=
 	{
 		this->player.pos[0]/SEGMENT_SIZE-VIEW_RANGE/2,
