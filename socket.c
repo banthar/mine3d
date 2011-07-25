@@ -7,23 +7,6 @@
 #include <iconv.h>
 #include <endian.h>
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN 
-    #define hton16(x)       __bswap_16(x)
-    #define hton32(x)       __bswap_32(x)
-    #define hton64(x)       __bswap_64(x)
-    #define ntoh16(x)       __bswap_16(x)
-    #define ntoh32(x)       __bswap_32(x)
-    #define ntoh64(x)       be64toh(x)
-#else
-    #define hton16(x)       (x)
-    #define hton32(x)       (x)
-    #define hton64(x)       (x)
-    #define ntoh16(x)       (x)
-    #define ntoh32(x)       (x)
-    #define ntoh64(x)       (x)
-#endif
-
-
 static iconv_t conv_ucs2_to_utf8;
 static iconv_t conv_utf8_to_ucs2;
 
@@ -38,21 +21,21 @@ public uint16_t readShort(Socket* socket)
 {
 	uint16_t n;
 	socketRead(socket,&n,sizeof(n));
-	return ntoh16(n);
+	return be16toh(n);
 }
 
 public uint32_t readInt(Socket* socket)
 {
 	uint32_t n;
 	socketRead(socket,&n,sizeof(n));
-	return ntoh32(n);
+	return be32toh(n);
 }
 
 public uint64_t readLong(Socket* socket)
 {
 	uint64_t n;
 	socketRead(socket,&n,sizeof(n));
-	return ntoh64(n);
+	return be64toh(n);
 }
 
 public bool readBool(Socket* socket)
@@ -91,19 +74,19 @@ public void writeByte(Socket* socket, uint8_t n)
 
 public void writeShort(Socket* socket, uint16_t h)
 {
-	uint16_t n=hton16(h);
+	uint16_t n=htobe16(h);
 	socketWrite(socket, &n, sizeof(n));
 }
 
 public void writeInt(Socket* socket, uint32_t h)
 {
-	uint32_t n=hton32(h);
+	uint32_t n=htobe32(h);
 	socketWrite(socket, &n, sizeof(n));
 }
 
 public void writeLong(Socket* socket, uint64_t h)
 {
-	uint64_t n=hton64(h);
+	uint64_t n=htobe64(h);
 	socketWrite(socket, &n, sizeof(n));
 }
 
