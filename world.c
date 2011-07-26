@@ -58,6 +58,25 @@ public Block worldGet(World* this, Vec4i pos)
 
 }
 
+private void worldTouch(World* this, Vec4i pos)
+{
+
+	const Vec4i segment_bits=(Vec4i){SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS,SEGMENT_BITS};
+
+	Vec4i global=(pos>>segment_bits)-this->scroll;
+
+	for(int i=0;i<3;i++)
+		if(global[i]<0 || global[i]>=VIEW_RANGE)
+			return;
+
+	Segment* segment=this->segment[global[2]][global[1]][global[0]];
+
+	if(segment!=NULL)
+	{
+		segment->rendered=false;
+	}
+
+}
 
 public void worldSet(World* this, Vec4i pos, Block block)
 {
@@ -78,6 +97,13 @@ public void worldSet(World* this, Vec4i pos, Block block)
 		segment=newSegment();
 		this->segment[global[2]][global[1]][global[0]]=segment;
 	}
+
+	worldTouch(this,pos+(Vec4i){0,0, 1});
+	worldTouch(this,pos+(Vec4i){0,0,-1});
+	worldTouch(this,pos+(Vec4i){ 1,0,0});
+	worldTouch(this,pos+(Vec4i){-1,0,0});
+	worldTouch(this,pos+(Vec4i){0, 1,0});
+	worldTouch(this,pos+(Vec4i){0,-1,0});
 
 	segment->rendered=false;
 
@@ -183,6 +209,8 @@ private void renderSegment(World* world, Segment* this, Vec4i pos)
 						if(block_definition[normalBlock.id].transparent==false)
 							continue;
 
+						if((block.id==8 || block.id==9) && block.id==normalBlock.id)
+							continue;
 
 						int tile_id=block_definition[block.id].textures[i];
 
@@ -230,7 +258,7 @@ private void renderSegment(World* world, Segment* this, Vec4i pos)
 private void drawSegment(World* world, Segment* this, Vec4i pos)
 {
 
-	if(this!=NULL && this->rendered && this->vbo!=0)
+	if(this!=NULL && this->vbo!=0)
 	{
 
 		glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
