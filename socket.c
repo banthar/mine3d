@@ -3,12 +3,18 @@
 
 #include "socket.h"
 
-#include "SDL_net.h"
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <iconv.h>
 #include <endian.h>
 
-static iconv_t conv_ucs2_to_utf8;
-static iconv_t conv_utf8_to_ucs2;
+static iconv_t conv_ucs2_to_utf8=NULL;
+static iconv_t conv_utf8_to_ucs2=NULL;
 
 public uint8_t readByte(Socket* socket)
 {
@@ -220,18 +226,46 @@ public void socketFlush(Socket* socket)
 	if(socket->buffer_length==0)
 		return;
 
-	int ret=SDLNet_TCP_Send(socket->socket, socket->buffer, socket->buffer_length);
+	int ret=write(socket->fd, socket->buffer, socket->buffer_length);
 
 	if(ret!=socket->buffer_length)
 	{
-		panic("write error");
+		panic("write error len:%i ret:%i fd:%i",socket->buffer_length,ret,socket->fd);
 	}
 
 	socket->buffer_length=0;
 
 }
 
-public void socketWrite(Socket* socket, void* data, int length)
+public bool socketOpen(Socket* sock, const char* host, short port)
+{
+
+	assert(conv_ucs2_to_utf8!=NULL && conv_utf8_to_ucs2!=NULL);
+
+	sock->fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	assert(sock->fd>=0)
+
+	struct sockaddr_in address={0};
+
+	address.sin_family = AF_INET;
+	address.sin_port = htons(port);
+
+	int ret = inet_pton(AF_INET, host, &address.sin_addr);
+	assert(ret>0);
+
+	ret = connect(sock->fd, (struct sockaddr *)&address, sizeof(address) );
+	assert(ret==0);
+	
+	return true;
+
+}
+
+public void socketClose(Socket* socket)
+{
+}
+
+public void socketWrite(Socket* socket, void* data, size_t length)
 {
 
 	if(socket->buffer_length+length>=sizeof(socket->buffer))
@@ -244,17 +278,34 @@ public void socketWrite(Socket* socket, void* data, int length)
 	
 }
 
-public void socketRead(Socket* socket, void* data, int length)
+public void socketRead(Socket* socket, void* data, size_t length)
 {
-	int ret=SDLNet_TCP_Recv(socket->socket, data, length);
 
-	if(ret!=length)
-		panic("read error");
+	byte* ptr=data;
+
+	while(length>0)
+	{
+
+		int ret=read(socket->fd, ptr, length);
+
+		if(ret<=0)
+			panic("read error");
+
+		length-=ret;
+		ptr+=ret;
+
+	}
+
 }
 
 public void socketInit()
 {
-	conv_ucs2_to_utf8=iconv_open("UTF-8","UCS-2BE");
-	conv_utf8_to_ucs2=iconv_open("UCS-2BE","UTF-8");
+
+	if(conv_ucs2_to_utf8==NULL)
+		conv_ucs2_to_utf8=iconv_open("UTF-8","UCS-2BE");
+
+	if(conv_utf8_to_ucs2==NULL)
+		conv_utf8_to_ucs2=iconv_open("UCS-2BE","UTF-8");
+
 }
 

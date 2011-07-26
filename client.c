@@ -7,7 +7,6 @@
 
 #include <signal.h>
 #include "SDL.h"
-#include "SDL_net.h"
 #include "glew.h"
 
 static SDL_Surface* screen;
@@ -95,9 +94,6 @@ export int main(int argc, char* argv[])
 
 	if(SDL_Init(SDL_INIT_VIDEO)!=0)
 		panic("sdl error");
-
-	if(SDLNet_Init() != 0)
-		panic("sdl net error");
 
 	signal(SIGINT, SIG_DFL);
 

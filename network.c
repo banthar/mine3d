@@ -13,6 +13,8 @@
 #include <iconv.h>
 #include <zlib.h>
 
+#define or ?:
+
 #define PACKET_DEBUG_START(id,name) {}
 
 static char* playerName="banthar";
@@ -322,8 +324,9 @@ private void readMapChunk(World* world, Socket* socket)
 	int size_y=readByte(socket)+1;
 	int size_z=readByte(socket)+1;
 
-	byte compressed[readInt(socket)];
-	socketRead(socket,compressed,sizeof(compressed));
+	size_t compressed_size=readInt(socket);
+	byte compressed[compressed_size];
+	socketRead(socket,compressed,compressed_size);
 
 	size_t uncompressed_size=size_x*size_y*size_z*5/2;
 
@@ -336,7 +339,7 @@ private void readMapChunk(World* world, Socket* socket)
 
 	assert(sizeof(uncompressed)==uncompressed_size);
 
-	printf("map chunk: %i %i %i\n",x0,y0,z0);
+	printf("map chunk: (%i %i %i) (%i %i %i)\n",x0,y0,z0,size_x,size_y,size_z);
 
 	worldLock(world);
 
@@ -559,18 +562,9 @@ public int networkMain(void* data)
 
 	socketInit();
 
-	IPaddress address;
-
-	if(SDLNet_ResolveHost(&address, "localhost",25565) != 0 )
-	{
-		panic("unable to resolve host");
-	}
-
 	Socket socket={0};
-	socket.socket = SDLNet_TCP_Open(&address);
+	socketOpen(&socket,"127.0.0.1",25565) or panic("unable to connect");
 
-	if(socket.socket==NULL)
-		panic("unable to connect");
 
 //	SDLNet_TCP_Send(socket,hello,sizeof(hello)-1);
 
@@ -591,7 +585,7 @@ public int networkMain(void* data)
 
 		SDL_LockMutex(world->writeLock);
 
-		//printf("%02x: \n",packet_id);
+		printf("%02x: \n",packet_id);
 
 		PacketHandler* handler=packetHandlers[packet_id];
 

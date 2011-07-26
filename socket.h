@@ -1,13 +1,12 @@
 
 #pragma once
 
-#include "SDL_net.h"
 #include <stdbool.h>
 #include <std/types.h>
 
 typedef struct
 {
-	TCPsocket socket;
+	int fd;
 	int buffer_length;
 	byte buffer[1024*4];
 }Socket;
@@ -30,9 +29,11 @@ public char* readString16(Socket* socket);
 public void readStream(Socket* socket);
 public void writeString16(Socket* socket, char* utf8_string);
 public void socketFlush(Socket* socket);
-public void socketWrite(Socket* socket, void* data, int length);
-public void socketRead(Socket* socket, void* data, int length);
+public void socketWrite(Socket* socket, void* data, size_t length);
+public void socketRead(Socket* socket, void* data, size_t length);
 public void socketInit();
+public bool socketOpen(Socket* sock, const char* host, short port);
+public void socketClose(Socket* socket);
 
 
 

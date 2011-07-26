@@ -5,7 +5,7 @@ HEADERS:=actor.h block.h config.h math.h network.h noise.h socket.h utils.h worl
 PACKAGES:=sdl glew sdl-image gl ftgl
 
 CFLAGS:=-std=c99 `pkg-config --cflags $(PACKAGES)`
-LDFLAGS:=-lm `pkg-config --libs $(PACKAGES)` -lSDL_net -lz
+LDFLAGS:=-lm `pkg-config --libs $(PACKAGES)` -lz
 
 CFLAGS+=-g -Wall -DDEBUG 
 LDFLAGS+=-g -lstd
@@ -15,9 +15,9 @@ LDFLAGS+=-g -lstd
 
 .PHONY: run gdb debug clean
 
-debug: client
+debug: client server
 
-release: clean client
+release: clean client server
 
 client: $(OBJECTS)
 
