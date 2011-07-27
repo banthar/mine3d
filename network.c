@@ -17,7 +17,7 @@
 
 #define PACKET_DEBUG_START(id,name) {}
 
-static char* playerName="banthar";
+static char* playerName="banthar1";
 
 static int stage=0;
 
@@ -320,9 +320,9 @@ private void readMapChunk(World* world, Socket* socket)
 	int z0=readInt(socket);
 	int y0=readShort(socket);
 	int x0=readInt(socket);
-	int size_x=readByte(socket)+1;
-	int size_y=readByte(socket)+1;
 	int size_z=readByte(socket)+1;
+	int size_y=readByte(socket)+1;
+	int size_x=readByte(socket)+1;
 
 	size_t compressed_size=readInt(socket);
 	byte compressed[compressed_size];
@@ -585,7 +585,7 @@ public int networkMain(void* data)
 
 		SDL_LockMutex(world->writeLock);
 
-		printf("%02x: \n",packet_id);
+		//printf("%02x: \n",packet_id);
 
 		PacketHandler* handler=packetHandlers[packet_id];
 

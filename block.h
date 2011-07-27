@@ -16,6 +16,13 @@ typedef struct
 
 typedef struct
 {
+	int size;
+	int maxSize;
+	Vertex* data;
+}VertexBuffer;
+
+typedef struct
+{
 	byte id;
 	byte metadata;
 	float light;
@@ -28,6 +35,7 @@ typedef enum
 	DRAW_BLOCK,
 	DRAW_CACTI,
 	DRAW_TREE,
+	DRAW_GRASS,
 }DrawMode;
 
 typedef enum
@@ -35,6 +43,7 @@ typedef enum
 	COLOR_NONE,
 	COLOR_GRASS,
 	COLOR_WATER,
+	COLOR_WOOL,
 }ColorMode;
 
 typedef struct
@@ -49,4 +58,7 @@ typedef struct
 
 public BlockDefinition block_definition[256];
 
+typedef struct World World;
+
+void blockDraw(World* world, Vec4i loc, VertexBuffer* buffer);
 

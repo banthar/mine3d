@@ -3,12 +3,14 @@
 
 #include "block.h"
 
+#include "world.h"
+
 public BlockDefinition block_definition[256]=
 {
 //   id|                    name | solid|transp|  draw mode|  color mode| textures
 	 [0] = {                "Air", false,  true,  DRAW_NONE,  COLOR_NONE, { 0, 0, 0, 0, 0, 0}},
 	 [1] = {              "Stone",  true, false, DRAW_BLOCK,  COLOR_NONE, { 1, 1, 1, 1, 1, 1}},
-	 [2] = {              "Grass",  true, false, DRAW_BLOCK, COLOR_GRASS, { 2, 0, 3, 3, 3, 3}},
+	 [2] = {              "Grass",  true, false, DRAW_GRASS, COLOR_GRASS, {0xb4,0x28, 0x26, 0x26, 0x26, 0x26}},
 	 [3] = {               "Dirt",  true, false, DRAW_BLOCK,  COLOR_NONE, { 2, 2, 2, 2, 2, 2}},
 	 [4] = {       "Cobblerstone",  true, false, DRAW_BLOCK,  COLOR_NONE, {16,16,16,16,16,16}},
 	 [5] = {       "Wooden Plank",  true, false, DRAW_BLOCK,  COLOR_NONE, { 4, 4, 4, 4, 4, 4}},
@@ -43,7 +45,7 @@ public BlockDefinition block_definition[256]=
 	[32] = {        "Dead Shrubs", false,  true,  DRAW_TREE,  COLOR_NONE, {55,55,55,55}},
 	[33] = {             "Piston",true,false,DRAW_BLOCK,COLOR_NONE,{0x00,0x00,0x00,0x00,0x00,0x00}},
 	[34] = {   "Piston Extension",true,false,DRAW_BLOCK,COLOR_NONE,{0x00,0x00,0x00,0x00,0x00,0x00}},
-	[35] = {               "Wool",true,false,DRAW_BLOCK,COLOR_NONE,{0x00,0x00,0x00,0x00,0x00,0x00}},
+	[35] = {               "Wool",true,false,DRAW_BLOCK,COLOR_WOOL,{0xe1,0xe1,0xe1,0xe1,0xe1,0xe1}},
 	[36] = { "Block moved By Piston",true,false,DRAW_BLOCK,COLOR_NONE,{0x00,0x00,0x00,0x00,0x00,0x00}},
 	[37] = {        "Dandelion", false,  true,  DRAW_TREE,  COLOR_NONE, {13,13,13,13}},
 	[38] = {             "Rose", false,  true,  DRAW_TREE,  COLOR_NONE, {12,12,12,12}},
@@ -108,4 +110,195 @@ public BlockDefinition block_definition[256]=
 
 };
 
+static void addVertex(VertexBuffer* buffer, Vertex v)
+{
+	assert(buffer->size<buffer->maxSize);
+	buffer->data[buffer->size++]=v;
+}
+
+void blockDrawCube(World* world, Vec4i loc, VertexBuffer* buffer, Vec4f baseColor, int textures[])
+{
+
+	Block block=worldGet(world,loc);
+
+	static const Vec4i face[6][4]={
+		{{0,0,0},{1,0,0},{1,1,0},{0,1,0}},
+		{{0,0,1},{0,1,1},{1,1,1},{1,0,1}},
+
+		{{1,0,0},{0,0,0},{0,0,1},{1,0,1}},
+		{{0,1,0},{1,1,0},{1,1,1},{0,1,1}},
+
+		{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
+		{{1,1,0},{1,0,0},{1,0,1},{1,1,1}},
+	};
+
+	static const int texCoord[4][2]={
+		{0,1},{1,1},{1,0},{0,0},
+	};
+
+	static const Vec4i normal[6]={
+		{ 0, 0,-1},
+		{ 0, 0, 1},
+		{ 0,-1, 0},
+		{ 0, 1, 0},
+		{-1, 0, 0},
+		{ 1, 0, 0},
+	};
+
+	static const Vec4i light_vertex_mask[6][4]={
+		{{ 0, 0, 1},{ 0, 1, 1},{ 1, 0, 1},{ 1, 1, 1}},
+		{{ 0, 0, 1},{ 0, 1, 1},{ 1, 0, 1},{ 1, 1, 1}},
+		{{ 0, 1, 0},{ 0, 1, 1},{ 1, 1, 0},{ 1, 1, 1}},
+		{{ 0, 1, 0},{ 0, 1, 1},{ 1, 1, 0},{ 1, 1, 1}},
+		{{ 1, 0, 0},{ 1, 0, 1},{ 1, 1, 0},{ 1, 1, 1}},
+		{{ 1, 0, 0},{ 1, 0, 1},{ 1, 1, 0},{ 1, 1, 1}},
+	};
+
+	for(int i=0;i<6;i++)
+	{
+
+		Block normalBlock=worldGet(world,loc+normal[i]);			
+
+		if(block_definition[normalBlock.id].transparent==false)
+			continue;
+
+		if((block.id==8 || block.id==9) && block.id==normalBlock.id)
+			continue;
+
+		int tile_id=textures[i];
+
+		int tileX=tile_id%TEXTURE_SIZE;
+		int tileY=tile_id/TEXTURE_SIZE;
+
+		for(int v=0;v<4;v++)
+		{
+
+			Vec4i vertex_normal=face[i][v]*(Vec4i){2,2,2}-(Vec4i){1,1,1};
+			float light=0.0;
+			float sky_light=0.0;
+
+			for(int j=0;j<4;j++)
+			{
+				Block b=worldGet(world,loc+vertex_normal*light_vertex_mask[i][j]);
+				light+=b.light;
+				sky_light+=b.skyLight;
+			}
+
+			light/=4.0;
+			sky_light/=4.0;
+
+			float l=clampf(light+sky_light,0.1,1.0);
+			//l=l>0.75;
+			Vertex vertex={
+				.pos=loc+face[i][v],
+				.color=(Vec4f){l,l,l,1}*baseColor,
+				.texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE},
+			};
+
+			addVertex(buffer,vertex);
+
+		}
+
+	}
+}
+
+void blockDrawTree(World* world, Vec4i loc, VertexBuffer* buffer,Vec4f baseColor, int textures[])
+{
+
+	Block block=worldGet(world,loc);
+
+	static const Vec4i tree_face[4][4]={
+		{{1,0,0},{0,1,0},{0,1,1},{1,0,1}},
+		{{0,1,0},{1,0,0},{1,0,1},{0,1,1}},
+		{{1,1,0},{0,0,0},{0,0,1},{1,1,1}},
+		{{0,0,0},{1,1,0},{1,1,1},{0,0,1}},
+	};
+
+	static const int texCoord[4][2]={
+		{0,1},{1,1},{1,0},{0,0},
+	};
+
+	for(int i=0;i<4;i++)
+	{
+		int tile_id=textures[i];
+
+		int tileX=tile_id%TEXTURE_SIZE;
+		int tileY=tile_id/TEXTURE_SIZE;
+
+		for(int v=0;v<4;v++)
+		{
+
+			float light=clampf(block.light+block.skyLight,0.2,1.0);
+
+			Vertex vertex={
+				.pos=loc+tree_face[i][v],
+				.color=(Vec4f){light,light,light,1}*baseColor,
+				.texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE},
+			};
+
+			addVertex(buffer,vertex);
+
+		}
+
+	}
+}
+
+void blockDraw(World* world, Vec4i loc, VertexBuffer* buffer)
+{
+
+	Block block=worldGet(world,loc);
+
+	Vec4f baseColor;
+
+	#define RGB8(r,g,b) (Vec4f){r/255.0,g/255.0,b/255.0,1.0}
+
+	Vec4f woolColors[16]={
+		RGB8(222, 223, 222),
+		RGB8(234, 127,  57),
+		RGB8(192,  77, 200),	
+		RGB8(105, 140, 211),
+		RGB8(194, 182,  36),	
+		RGB8( 56, 189,  52),	
+		RGB8(217, 132, 155),	
+		RGB8( 66,  66,  66),	
+		RGB8(158, 166, 166),	
+		RGB8( 39, 117, 149),	
+		RGB8(130,  55, 195),	
+		RGB8( 40,  52, 153),
+		RGB8( 85,  50,  28),
+		RGB8( 55,  76,  25),
+		RGB8(164,  45,  40),
+		RGB8( 26,  22,  22),
+	};
+
+	switch(block_definition[block.id].color_mode)
+	{
+		case COLOR_NONE:
+			baseColor=(Vec4f){1.0,1.0,1.0,1.0};
+			break;
+		case COLOR_GRASS:
+			baseColor=(Vec4f){0.2,0.9,0.1,1.0};
+			break;
+		case COLOR_WOOL:
+			baseColor=woolColors[block.metadata&0xf];
+	}
+
+	switch(block_definition[block.id].draw_mode)
+	{
+		case DRAW_TREE:
+			blockDrawTree(world,loc,buffer,baseColor,block_definition[block.id].textures);
+			break;
+		case DRAW_BLOCK:
+			blockDrawCube(world,loc,buffer,baseColor,block_definition[block.id].textures);
+			break;
+		case DRAW_GRASS:
+			blockDrawCube(world,loc,buffer,baseColor,block_definition[block.id].textures);
+			blockDrawCube(world,loc,buffer,(Vec4f){1.0,1.0,1.0,1.0},block_definition[3].textures);
+			break;
+		default:
+			break;
+	}
+
+
+}
 

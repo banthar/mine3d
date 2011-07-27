@@ -15,7 +15,9 @@
 #include <unistd.h>
 #include <zlib.h>
 #include "SDL.h"
+#include "SDL_image.h"
 
+static SDL_Surface* animation;
 
 static void sendLoginRequest(Socket* socket)
 {
@@ -56,7 +58,12 @@ private void sendPreChunk(Socket* socket, int x, int y, bool mode)
 	writeBool(socket,mode);
 }
 
-private void sendMapChunk(Socket* socket, Vec4i pos, Vec4i size)
+static void setNibble(byte* ptr, int n, byte val)
+{
+	ptr[n/2]|=n&1?val<<4:val;
+}
+
+private void sendMapChunk(Socket* socket, Vec4i pos, Vec4i size, uint16_t f(int,int,int))
 {
 
 	writeByte(socket,0x33);
@@ -79,17 +86,23 @@ private void sendMapChunk(Socket* socket, Vec4i pos, Vec4i size)
 	byte* light=metadata+area/2;
 	byte* skyLight=light+area/2;
 
+	assert((skyLight+area/2-uncompressed)==uncompressed_size);
+
+	memset(metadata,0x0,area/2);
+	memset(light,0x0,area/2);
+	memset(skyLight,0xff,area/2);
+
 	for(int x=0;x<size[0];x++)
 	for(int y=0;y<size[1];y++)
 	for(int z=0;z<size[2];z++)
 	{
 		int pos=z+size[2]*(x+size[1]*y);
-		ids[pos]=z<63;
+		assert(ids+pos<metadata);
+		uint16_t b=f(x,y,z);
+		setNibble(metadata,pos,b>>8);
+		ids[pos]=b&0xff;
 	}
 
-	memset(metadata,0x0,area/2);
-	memset(light,0x0,area/2);
-	memset(skyLight,0xff,area/2);
 
 	size_t compressed_size=uncompressed_size;
 	byte compressed[compressed_size];
@@ -107,6 +120,11 @@ private void sendMapChunk(Socket* socket, Vec4i pos, Vec4i size)
 static void sendWorld(Socket* socket)
 {
 
+	uint16_t f(int x,int y, int z)
+	{
+		return (z<63)?35:0;
+	}
+
 	int size=2;
 
 	for(int x=-size;x<size;x++)
@@ -114,7 +132,7 @@ static void sendWorld(Socket* socket)
 	{
 
 		sendPreChunk(socket,x,y,true);
-		sendMapChunk(socket, (Vec4i){x*16,y*16,0}, (Vec4i){16,16,128});
+		sendMapChunk(socket, (Vec4i){x*16,y*16,0}, (Vec4i){16,16,128},&f);
 
 	}
 
@@ -207,30 +225,87 @@ PacketHandler* packetHandler[256]={
 	[0x12] = readAnimation,
 };
 
-
-
-static int clientThread(void* data)
+typedef struct
 {
-	socketInit();
-	Socket socket={.fd=(intptr_t)data};
+	Socket socket;
+	SDL_mutex* mutex;
+}Client;
 
-	assert(readByte(&socket)==0x02);
-	readHandshake(&socket);
-	sendHandshake(&socket);
-	socketFlush(&socket);
-	assert(readByte(&socket)==0x01);
-	readLoginRequest(&socket);
-	sendLoginRequest(&socket);
-	sendPlayerPositionAndLook(&socket);
-	sendWorld(&socket);
-	socketFlush(&socket);
+static byte getPixel(SDL_Surface* img, int x,int y)
+{
+	return ((byte*)img->pixels)[x+y*img->pitch];
+}
 
+int animationWidth=16;
+int animationHeight=16;
+
+static int animationThread(void* data)
+{
+
+	int frame=0;
+
+	int pitch=animation->w/animationWidth;
+	int length=animation->w*animation->h/animationHeight/animationWidth;
+
+
+	printf("%i %i %i\n",frame,pitch,length);
+
+	Client* client=data;
+
+	uint16_t f(int x, int y, int z)
+	{
+		return (getPixel(animation,(frame%pitch)*animationWidth+x,(frame/pitch)*animationHeight+animationHeight-1-z)<<8)|35;
+	}
 
 	while(true)
 	{
 
-		socketFlush(&socket);
-		byte packet_id=readByte(&socket);
+		frame=(frame+1)%length;
+
+
+		SDL_LockMutex(client->mutex);
+		sendMapChunk(&client->socket, (Vec4i){-16,-16,63}, (Vec4i){16,1,16},&f);
+		SDL_UnlockMutex(client->mutex);
+		SDL_Delay(1000/25);
+	}
+
+	return 0;
+
+}
+
+static int clientThread(void* data)
+{
+
+	socketInit();
+	Client client={
+		.socket={
+			.fd=(intptr_t)data,
+		},
+		.mutex=SDL_CreateMutex(),
+	};
+
+	SDL_LockMutex(client.mutex);
+
+	assert(readByte(&client.socket)==0x02);
+	readHandshake(&client.socket);
+	sendHandshake(&client.socket);
+	socketFlush(&client.socket);
+	assert(readByte(&client.socket)==0x01);
+	readLoginRequest(&client.socket);
+	sendLoginRequest(&client.socket);
+	sendPlayerPositionAndLook(&client.socket);
+	sendWorld(&client.socket);
+	socketFlush(&client.socket);
+
+	SDL_CreateThread(animationThread,&client);
+
+	while(true)
+	{
+
+		socketFlush(&client.socket);
+		SDL_UnlockMutex(client.mutex);
+		byte packet_id=readByte(&client.socket);
+		SDL_LockMutex(client.mutex);
 
 		PacketHandler* handler=packetHandler[packet_id];
 
@@ -238,19 +313,23 @@ static int clientThread(void* data)
 		{
 			char buf[1024];
 			sprintf(buf,"Unknown packet: 0x%02x",packet_id);
-			sendKick(&socket,buf);
-			socketFlush(&socket);
+			sendKick(&client.socket,buf);
+			socketFlush(&client.socket);
 			break;
 		}
 		else
 		{
-			(*handler)(&socket);
+			(*handler)(&client.socket);
 		}
+
+
 	}
 
-	socketFlush(&socket);
-	SDL_Delay(100);
-	close(socket.fd);
+	socketFlush(&client.socket);
+	SDL_Delay(25);
+	close(client.socket.fd);
+
+	SDL_UnlockMutex(client.mutex);
 
 	return 0;
 
@@ -281,6 +360,10 @@ static int openListenSock()
 
 int main(int argc, char* argv[])
 {
+
+	animation=IMG_Load("rick.png");
+
+	assert(animation!=NULL);
 
 	int socket=openListenSock();
 

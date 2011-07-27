@@ -127,129 +127,31 @@ private void renderSegment(World* world, Segment* this, Vec4i pos)
 		return;
 
 	static Vertex data[SEGMENT_SIZE*SEGMENT_SIZE*SEGMENT_SIZE*6*4];
-	const int max_vertices=sizeof(data)/sizeof(*data);
 
-	int n=0;
+	VertexBuffer buffer=
+	{
+		.maxSize=sizeof(data)/sizeof(*data),
+		.size=0,
+		.data=data,
+	};
 
 	for(int z=0;z<SEGMENT_SIZE;z++)
 	for(int y=0;y<SEGMENT_SIZE;y++)
 	for(int x=0;x<SEGMENT_SIZE;x++)
 	{
-
-		Vec4i loc=pos*SEGMENT_SIZEV+(Vec4i){x,y,z};
-
-		Block block=this->data[z][y][x];
-
-		//if(worldGet(world,loc)!=0)
-		if(block.id!=0)
-		{
-
-			static const Vec4i face[6][4]={
-				{{0,0,0},{1,0,0},{1,1,0},{0,1,0}},
-				{{0,0,1},{0,1,1},{1,1,1},{1,0,1}},
-
-				{{1,0,0},{0,0,0},{0,0,1},{1,0,1}},
-				{{0,1,0},{1,1,0},{1,1,1},{0,1,1}},
-
-				{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
-				{{1,1,0},{1,0,0},{1,0,1},{1,1,1}},
-			};
-
-			static const Vec4i tree_face[4][4]={
-				{{1,0,0},{0,1,0},{0,1,1},{1,0,1}},
-				{{0,1,0},{1,0,0},{1,0,1},{0,1,1}},
-				{{1,1,0},{0,0,0},{0,0,1},{1,1,1}},
-				{{0,0,0},{1,1,0},{1,1,1},{0,0,1}},
-			};
-
-			static const int texCoord[4][2]={
-				{0,1},{1,1},{1,0},{0,0},
-			};
-
-			static const Vec4i normal[6]={
-				{ 0, 0,-1},
-				{ 0, 0, 1},
-				{ 0,-1, 0},
-				{ 0, 1, 0},
-				{-1, 0, 0},
-				{ 1, 0, 0},
-			};
-
-			switch(block_definition[block.id].draw_mode)
-			{
-				case DRAW_NONE:
-					break;
-				case DRAW_TREE:
-					for(int i=0;i<4;i++)
-					{
-						int tile_id=block_definition[block.id].textures[i];
-
-						int tileX=tile_id%TEXTURE_SIZE;
-						int tileY=tile_id/TEXTURE_SIZE;
-
-						for(int v=0;v<4;v++)
-						{
-							assert(n<max_vertices);
-							data[n].pos=loc+tree_face[i][v];
-							data[n].color=(Vec4f){1,1,1,1};
-							if(block_definition[block.id].color_mode==COLOR_GRASS)
-								data[n].color*=(Vec4f){0,1,0,1};
-							data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
-							n++;
-						}
-
-					}
-					break;
-				case DRAW_BLOCK:
-					for(int i=0;i<6;i++)
-					{
-
-						Block normalBlock=worldGet(world,loc+normal[i]);			
-
-						if(block_definition[normalBlock.id].transparent==false)
-							continue;
-
-						if((block.id==8 || block.id==9) && block.id==normalBlock.id)
-							continue;
-
-						int tile_id=block_definition[block.id].textures[i];
-
-						int tileX=tile_id%TEXTURE_SIZE;
-						int tileY=tile_id/TEXTURE_SIZE;
-
-						for(int v=0;v<4;v++)
-						{
-							assert(n<max_vertices);
-							data[n].pos=loc+face[i][v];
-							float light=clampf(normalBlock.light+normalBlock.skyLight,0.2,1);
-							data[n].color=(Vec4f){light,light,light,1};
-							if(block_definition[block.id].color_mode==COLOR_GRASS)
-								data[n].color*=(Vec4f){0.2,1,0.1,1};
-
-							data[n].texCoord=(Vec2f){(texCoord[v][0]+tileX)*1.0/TEXTURE_SIZE,(texCoord[v][1]+tileY)*1.0/TEXTURE_SIZE};
-							n++;
-						}
-
-					}
-					break;
-				default:
-					break;
-
-			}
-
-		}
+		blockDraw(world,pos*SEGMENT_SIZEV+(Vec4i){x,y,z},&buffer);
 	}
 
-	if(n==0)
+	if(buffer.size==0)
 		return;
 
-	this->n=n;
+	this->n=buffer.size;
 
 	if(this->vbo==0)
 		glGenBuffers(1,&this->vbo);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(*data)*n, data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(*data)*this->n, data, GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
