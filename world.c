@@ -6,12 +6,15 @@
 #include "utils.h"
 #include "noise.h"
 #include "block.h"
+#include "utils.h"
 
 #include "SDL.h"
 #include "glew.h"
 #include <math.h>
 #include <stdlib.h>
 #include <pthread.h>
+
+extern bool grab_mouse;
 
 private Segment* newSegment();
 
@@ -50,7 +53,7 @@ public Block worldGet(World* this, Vec4i pos)
 	Segment* segment=this->segment[global[2]][global[1]][global[0]];
 
 	if(segment==NULL)
-		return (Block){};
+		return (Block){.skyLight=1.0};
 
 	Vec4i local=pos&segment_mask;
 
@@ -168,9 +171,6 @@ private void drawSegment(World* world, Segment* this, Vec4i pos)
 		glColorPointer(4, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex,color));
 		glTexCoordPointer(2,GL_FLOAT,sizeof(Vertex), (void*)offsetof(Vertex,texCoord));
 
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glEnableClientState(GL_COLOR_ARRAY);
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		glDrawArrays(GL_QUADS, 0, this->n);
 
 	}
@@ -260,8 +260,20 @@ public bool worldEvent(World* this, const SDL_Event* event)
 	
 	switch(event->type)
 	{	
+		case SDL_KEYDOWN:
+			switch(event->key.keysym.sym)
+			{
+				case SDLK_f:
+					this->player.flying=!this->player.flying;
+					return true;
+				case SDLK_SPACE:
+					this->player.v[2]=0.31;
+					return true;
+				default:
+					return false;
+			}
 		case SDL_MOUSEMOTION:
-			//if(grab_mouse)
+			if(grab_mouse || event->motion.state)
 			{
 				this->player.rot[0]-=event->motion.xrel/100.0;
 				this->player.rot[1]-=event->motion.yrel/100.0;
@@ -279,7 +291,7 @@ private void playerTick(World* world)
 	Uint8 *keys = SDL_GetKeyState(NULL);
 
 	double vx=0,vy=0;
-	double v=0.5;
+	double v=0.15;
 	
 	if(keys[SDLK_w] || keys[SDLK_UP])
 	{
@@ -300,29 +312,26 @@ private void playerTick(World* world)
 	if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
 	{
 		//v=0.01*world->player.pos[0];
-		//v=0.1;
+		v=0.1;
 	}
-	
-	world->player.pos[0]-=sin(world->player.rot[0])*sin(world->player.rot[1])*vy*v;
-	world->player.pos[1]-=cos(world->player.rot[0])*sin(world->player.rot[1])*vy*v;
-	world->player.pos[2]-=cos(world->player.rot[1])*vy*v;
 
-	world->player.pos[0]-=-cos(world->player.rot[0])*vx*v;
-	world->player.pos[1]-=sin(world->player.rot[0])*vx*v;
-
-	if(keys[SDLK_LSHIFT])
-		return;
-
-	int id=worldGet(world,(Vec4i){world->player.pos[0],world->player.pos[1],world->player.pos[2]-1.6}).id;
-
-	if(id==0)
+	if(!world->player.flying)
 	{
-		//world->player.pos[2]-=0.1;
-		world->player.on_ground=false;
+		world->player.v[0]=cos(world->player.rot[0])*vx*v-sin(world->player.rot[0])*vy*v;
+		world->player.v[1]=-sin(world->player.rot[0])*vx*v-cos(world->player.rot[0])*vy*v;
+	
+		actorTick(world,&world->player);
 	}
 	else
 	{
-		//world->player.on_ground=true;
+	
+		world->player.pos[0]-=sin(world->player.rot[0])*sin(world->player.rot[1])*vy*v;
+		world->player.pos[1]-=cos(world->player.rot[0])*sin(world->player.rot[1])*vy*v;
+		world->player.pos[2]-=cos(world->player.rot[1])*vy*v;
+
+		world->player.pos[0]-=-cos(world->player.rot[0])*vx*v;
+		world->player.pos[1]-=sin(world->player.rot[0])*vx*v;
+
 	}
 
 }
@@ -334,7 +343,6 @@ public void worldTick(World* this)
 	
 	playerTick(this);
 
-	actorTick(this,&this->player);
 
 	Vec4i scroll=
 	{
@@ -415,15 +423,19 @@ public void worldDraw(World *world)
 
 	char buf[1024];
 	sprintf(buf,"x:%f y:%f z:%f (%f %f)",world->player.pos[0],world->player.pos[1],world->player.pos[2],world->player.rot[0],world->player.rot[1]);
-	ftglRenderFont(world->font, buf, FTGL_RENDER_ALL);
+	//ftglRenderFont(world->font, buf, FTGL_RENDER_ALL);
 
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	
+	//glTranslated(0,0,-3);
+
+	
 	glRotatef(world->player.rot[1]*180/M_PI,1,0,0);
 	glRotatef(world->player.rot[0]*180/M_PI,0,0,1);
 
-	glTranslated(-world->player.pos[0],-world->player.pos[1],-world->player.pos[2]);
+	glTranslatev(-world->player.pos-world->player.headOffset);
+
 
 	glBegin(GL_LINES);
 	int n=16;
@@ -436,6 +448,8 @@ public void worldDraw(World *world)
 	}
 	glEnd();
 
+	//actorDrawBBox(&world->player);
+
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
@@ -447,8 +461,16 @@ public void worldDraw(World *world)
 	glMatrixMode(GL_MODELVIEW);
 
 	glBindTexture(GL_TEXTURE_2D, world->terrain);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 	worldSpiral(world,worldDrawSegment);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
 
 	glMatrixMode(GL_PROJECTION);
@@ -462,6 +484,8 @@ public void worldInit(World *this)
 {
 	
 	*this=(World){};
+
+	this->player=(Actor){.size={0.3,0.3,0.9},.headOffset={0.0,0.0,0.89}};
 
 	this->lock=SDL_CreateMutex();
 	this->writeLock=SDL_CreateMutex();

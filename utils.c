@@ -9,6 +9,21 @@
 #include "SDL.h"
 #include "SDL_image.h"
 
+public void glVertexf(Vec4f p)
+{
+	glVertex3fv(&p[0]);
+}
+
+public void glVertexi(Vec4i p)
+{
+	glVertex3iv(&p[0]);
+}
+
+public void glTranslatev(Vec4f p)
+{
+	glTranslatef(p[0],p[1],p[2]);
+}
+
 public GLuint emptyTexture(int width, int height)
 {
 	

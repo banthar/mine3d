@@ -39,16 +39,16 @@ private void sendHandShake(World* world, Socket* socket)
 private void sendPlayerPositionAndLook(World* world, Socket* socket)
 {
 
-	world->player.stance=world->player.pos[2]+1.62;
+	//world->player.stance=world->player.pos[2]+1.62;
 
 	writeByte(socket,0x0d);
-	writeDouble(socket,world->player.pos[0]);
-	writeDouble(socket,world->player.pos[2]);
-	writeDouble(socket,world->player.stance);
-	writeDouble(socket,world->player.pos[1]);
+	writeDouble(socket,world->player.pos[0]-world->player.headOffset[0]);
+	writeDouble(socket,world->player.pos[2]-world->player.headOffset[2]);
+	writeDouble(socket,world->player.pos[2]-world->player.headOffset[2]+1.62);
+	writeDouble(socket,world->player.pos[1]-world->player.headOffset[1]);
 	writeFloat(socket,180-world->player.rot[0]*180/M_PI);
 	writeFloat(socket,clampf(90-world->player.rot[1]*180/M_PI,-90,+90));
-	writeBool(socket,world->player.on_ground);
+	writeBool(socket,world->player.flying);
 
 }
 
@@ -137,14 +137,13 @@ private void readPlayerPositionLook(World* world, Socket* socket)
 	worldLock(world);
 
 
-	world->player.pos[0]=x;
-	world->player.pos[2]=y;
-	world->player.pos[1]=z;
+	world->player.pos[0]=x+world->player.headOffset[0];
+	world->player.pos[2]=y+world->player.headOffset[2];
+	world->player.pos[1]=z+world->player.headOffset[1];
 	world->player.stance=stance;
 	world->player.rot[0]=yaw/180.0*M_PI;
 	world->player.rot[1]=pitch/180.0*M_PI;
-	world->player.on_ground=on_ground;
-	world->player.on_ground=on_ground;
+	world->player.flying=on_ground;
 
 	//SDL_Delay(100);
 	//world->player.on_ground=true;
@@ -576,7 +575,6 @@ public int networkMain(void* data)
 
 	Socket socket={0};
 	socketOpen(&socket,"127.0.0.1",25565) or panic("unable to connect");
-
 
 //	SDLNet_TCP_Send(socket,hello,sizeof(hello)-1);
 

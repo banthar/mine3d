@@ -10,7 +10,8 @@ typedef struct
 	Vec4f size;
 	Vec4f v;
 	Vec2f rot;
-	bool on_ground;
+	bool flying;
+	Vec4f headOffset;
 	double stance;
 }Actor;
 
@@ -18,3 +19,4 @@ struct World;
 typedef struct World World;
 
 public void actorTick(World* world, Actor* actor);
+public void actorDrawBBox(Actor* actor);

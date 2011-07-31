@@ -13,7 +13,7 @@ static SDL_Surface* screen;
 static bool fullscreen=false;
 static SDL_Rect window_rect={0,0,720,420};
 static SDL_Rect fullscreen_rect;
-static bool grab_mouse=false;
+bool grab_mouse=false;
 static World world;
 
 private void grabMouse()
@@ -108,9 +108,9 @@ export int main(int argc, char* argv[])
 	if(glewInit()!=GLEW_OK)
 		panic("glew error");
 
-	//GLint screen_texture=emptyTexture(1,1);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	GLint screen_texture=emptyTexture(1,1);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -142,7 +142,7 @@ export int main(int argc, char* argv[])
 		worldDraw(&world);
 
 		worldUnlock(&world);
-/*
+
 		glBindTexture(GL_TEXTURE_2D,screen_texture);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, screen->w, screen->h, 0);
 		glGenerateMipmap(GL_TEXTURE_2D);
@@ -160,9 +160,10 @@ export int main(int argc, char* argv[])
 		glTexCoord2f(0,1); glColor4f(1.0,1.0,1.1,1.0); glVertex2f(-1, 1);
 		glEnd();
 		glPopMatrix();
-*/		
+		
 		//glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, screen->w, screen->h, 0);
 		//glGenerateMipmap(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D,0);
 		
 		SDL_GL_SwapBuffers();
 		
