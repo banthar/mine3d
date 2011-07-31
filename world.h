@@ -59,6 +59,7 @@ struct World
 };
 
 public void worldInit(World* this);
+public void worldDisplayInit(World* this);
 public void worldLock(World* this);
 public void worldUnlock(World* this);
 public void worldDestroy(World* this);

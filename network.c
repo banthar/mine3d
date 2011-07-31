@@ -485,6 +485,17 @@ private void readIncrementStatistic(World* world, Socket* socket)
 	readByte(socket);
 }
 
+private void readUpdateSign(World* world, Socket* socket)
+{
+	readInt(socket);
+	readShort(socket);
+	readInt(socket);
+	readString16(socket);
+	readString16(socket);
+	readString16(socket);
+	readString16(socket);
+}
+
 private void readKick(World* world, Socket* socket)
 {
 	debugPacketType("Kick\n");
@@ -530,6 +541,7 @@ static PacketHandler* packetHandlers[]={
 	[0x67] = readSetSlot,
 	[0x68] = readWindowItems,
 	[0xc8] = readIncrementStatistic,
+	[0x82] = readUpdateSign,
 	[0xff] = readKick,
 };
 

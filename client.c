@@ -117,6 +117,7 @@ export int main(int argc, char* argv[])
 
 	worldInit(&world);
 	worldLock(&world);
+	worldDisplayInit(&world);
 
 	SDL_CreateThread(networkMain, &world);
 

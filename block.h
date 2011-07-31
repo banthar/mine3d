@@ -36,6 +36,8 @@ typedef enum
 	DRAW_CACTI,
 	DRAW_TREE,
 	DRAW_GRASS,
+	DRAW_RAIL,
+	DRAW_STAIRS,
 }DrawMode;
 
 typedef enum

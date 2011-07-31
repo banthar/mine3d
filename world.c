@@ -468,15 +468,16 @@ public void worldInit(World *this)
 
 	noiseInit(&this->noise,666);
 
+}
+
+public void worldDisplayInit(World *this)
+{
 	this->terrain=loadTexture("terrain.png");
 	assert(this->terrain!=0);
 
 	this->font=ftglCreateBitmapFont("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSansMono.ttf");
 	assert(this->font!=NULL);
 	ftglSetFontFaceSize(this->font, 18, 0);
-
-	this->player.pos=(Vec4f){0,0,16};
-
 }
 
 public void worldDestroy(World* this)
