@@ -14,21 +14,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-bool grab_mouse=false;
-
 private Segment* newSegment();
-
-public void worldLock(World* world)
-{
-	assert(world!=NULL);
-	assert(SDL_LockMutex(world->lock)==0);
-}
-
-public void worldUnlock(World* world)
-{
-	assert(world!=NULL);
-	assert(SDL_UnlockMutex(world->lock)==0);
-}
 
 public Block segmentGet(Segment* this, int x, int y, int z)
 {
@@ -273,12 +259,9 @@ public bool worldEvent(World* this, const SDL_Event* event)
 					return false;
 			}
 		case SDL_MOUSEMOTION:
-			if(grab_mouse || event->motion.state)
-			{
-				this->player.rot[0]-=event->motion.xrel/100.0;
-				this->player.rot[1]-=event->motion.yrel/100.0;
-				this->player.rot[1]=clampf(this->player.rot[1],0,M_PI);
-			}
+			this->player.rot[0]-=event->motion.xrel/100.0;
+			this->player.rot[1]-=event->motion.yrel/100.0;
+			this->player.rot[1]=clampf(this->player.rot[1],0,M_PI);
 			return false;
 		default:
 			return true;
@@ -486,9 +469,6 @@ public void worldInit(World *this)
 	*this=(World){};
 
 	this->player=(Actor){.size={0.3,0.3,0.9},.headOffset={0.0,0.0,0.89}};
-
-	this->lock=SDL_CreateMutex();
-	this->writeLock=SDL_CreateMutex();
 
 	noiseInit(&this->noise,666);
 

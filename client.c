@@ -1,6 +1,8 @@
 
 #include "config.h"
 
+#include "client.h"
+
 #include "world.h"
 #include "utils.h"
 #include "network.h"
@@ -9,35 +11,27 @@
 #include "SDL.h"
 #include "glew.h"
 
-static SDL_Surface* screen;
-static bool fullscreen=false;
-static SDL_Rect window_rect={0,0,720,420};
-static SDL_Rect fullscreen_rect;
-extern bool grab_mouse;
-static World world;
-
-private void grabMouse()
+private void grabMouse(Client* client)
 {
-	SDL_ShowCursor(!grab_mouse);
-	SDL_WM_GrabInput(grab_mouse?SDL_GRAB_ON:SDL_GRAB_OFF);	
+	SDL_ShowCursor(!client->grab_mouse);
+	SDL_WM_GrabInput(client->grab_mouse?SDL_GRAB_ON:SDL_GRAB_OFF);	
 }
 
-
-private void initVideo()
+private void initVideo(Client* client)
 {
-	if(fullscreen)
-		screen=SDL_SetVideoMode(fullscreen_rect.w,fullscreen_rect.h,0,SDL_OPENGL|SDL_FULLSCREEN);
+	if(client->fullscreen)
+		client->screen=SDL_SetVideoMode(client->fullscreen_rect.w,client->fullscreen_rect.h,0,SDL_OPENGL|SDL_FULLSCREEN);
 	else
-		screen=SDL_SetVideoMode(window_rect.w,window_rect.h,0,SDL_OPENGL|SDL_RESIZABLE);
+		client->screen=SDL_SetVideoMode(client->window_rect.w,client->window_rect.h,0,SDL_OPENGL|SDL_RESIZABLE);
 
-	if(screen==NULL)
+	if(client->screen==NULL)
 		panic("unable to set video mode");
 
-	grabMouse();
+	grabMouse(client);
 
-	glViewport(0,0,screen->w,screen->h);
+	glViewport(0,0,client->screen->w,client->screen->h);
 
-	float aspect=(float)screen->w/(float)screen->h;
+	float aspect=(float)client->screen->w/(float)client->screen->h;
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -48,41 +42,46 @@ private void initVideo()
 
 }
 
-private __attribute__((noreturn)) void quit()
+private __attribute__((noreturn)) void quit(Client* client)
 {
-	worldDestroy(&world);
+	worldDestroy(&client->world);
 	SDL_Quit();
 	exit(0);
 }
 
-private bool handleEvent(const SDL_Event* event)
+private bool handleEvent(Client* client, const SDL_Event* event)
 {
 	switch(event->type)
 	{
 		case SDL_QUIT:
-			quit();
+			quit(client);
 		case SDL_KEYDOWN:
 			switch(event->key.keysym.sym)
 			{
 				case SDLK_ESCAPE:
-					grab_mouse=!grab_mouse;
-					fullscreen&=grab_mouse;
-					initVideo();
+					client->grab_mouse=!client->grab_mouse;
+					client->fullscreen&=client->grab_mouse;
+					initVideo(client);
 					return false;
 				case SDLK_F10:
-					quit();
+					quit(client);
 				case SDLK_F11:
-					fullscreen=!fullscreen;
-					grab_mouse|=fullscreen;
-					initVideo();
+					client->fullscreen=!client->fullscreen;
+					client->grab_mouse|=client->fullscreen;
+					initVideo(client);
 					return false;
 				default:
 					return true;
 			}
 			break;
+		case SDL_MOUSEMOTION:
+			if(client->grab_mouse || event->motion.state)
+				return true;
+			else
+				return false;
 		case SDL_VIDEORESIZE:
-			window_rect=(SDL_Rect){0,0,event->resize.w,event->resize.h};
-			initVideo();
+			client->window_rect=(SDL_Rect){0,0,event->resize.w,event->resize.h};
+			initVideo(client);
 			return false;
 		default:
 			return true;
@@ -97,13 +96,16 @@ export int main(int argc, char* argv[])
 
 	signal(SIGINT, SIG_DFL);
 
-	//worldInit(&world);
-	//return networkMain(&world);
+	Client client={
+		.window_rect=(SDL_Rect){0,0,720,480},
+		.worldLock=SDL_CreateMutex(),
+		.socketLock=SDL_CreateMutex(),
+	};
 
 	const SDL_VideoInfo* video_info=SDL_GetVideoInfo();
-	fullscreen_rect=(SDL_Rect){0,0,video_info->current_w,video_info->current_h};
+	client.fullscreen_rect=(SDL_Rect){0,0,video_info->current_w,video_info->current_h};
 
-	initVideo();
+	initVideo(&client);
 
 	if(glewInit()!=GLEW_OK)
 		panic("glew error");
@@ -115,11 +117,11 @@ export int main(int argc, char* argv[])
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	worldInit(&world);
-	worldLock(&world);
-	worldDisplayInit(&world);
+	worldInit(&client.world);
+	SDL_LockMutex(client.worldLock);
+	worldDisplayInit(&client.world);
 
-	SDL_CreateThread(networkMain, &world);
+	SDL_CreateThread(networkMain, &client);
 
 	while(true)
 	{
@@ -128,23 +130,23 @@ export int main(int argc, char* argv[])
 
 		while(SDL_PollEvent(&event))
 		{
-			if(handleEvent(&event))
-				worldEvent(&world,&event);
+			if(handleEvent(&client, &event))
+				worldEvent(&client.world,&event);
 		}
 
 		int t=SDL_GetTicks();
 
-		worldTick(&world);
+		worldTick(&client.world);
 
 		glClearColor(0.76,0.81,1.0,0.0);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-		worldDraw(&world);
+		worldDraw(&client.world);
 
-		worldUnlock(&world);
+		SDL_UnlockMutex(client.worldLock);
 
 		glBindTexture(GL_TEXTURE_2D,screen_texture);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, screen->w, screen->h, 0);
+		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, client.screen->w, client.screen->h, 0);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glMatrixMode(GL_PROJECTION);
@@ -174,7 +176,7 @@ export int main(int argc, char* argv[])
 		if(delay>0)
 			SDL_Delay(delay);
 
-		worldLock(&world);
+		SDL_LockMutex(client.worldLock);
 			
 	}
 		

@@ -242,6 +242,8 @@ public bool socketOpen(Socket* sock, const char* host, short port)
 
 	assert(conv_ucs2_to_utf8!=NULL && conv_utf8_to_ucs2!=NULL);
 
+	assert(sock!=NULL);
+
 	sock->fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	assert(sock->fd>=0)
@@ -267,6 +269,9 @@ public void socketClose(Socket* socket)
 
 public void socketWrite(Socket* socket, void* data, size_t length)
 {
+
+
+	assert(socket->fd>0);
 
 	if(socket->buffer_length+length>=sizeof(socket->buffer))
 		socketFlush(socket);

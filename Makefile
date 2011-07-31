@@ -1,6 +1,6 @@
 
 OBJECTS:=actor.o client.o  noise.o utils.o world.o block.o network.o socket.o worldgen.o
-HEADERS:=actor.h block.h config.h math.h network.h noise.h socket.h utils.h worldgen.h world.h
+HEADERS:=actor.h block.h client.h config.h math.h network.h noise.h socket.h utils.h worldgen.h world.h
 
 PACKAGES:=sdl glew sdl-image gl ftgl
 

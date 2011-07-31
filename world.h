@@ -52,10 +52,6 @@ struct World
 	
 	Noise noise;
 
-	SDL_mutex *lock;
-	SDL_mutex *writeLock;
-	Socket* socket;
-
 	FTGLfont *font;
 	
 };
