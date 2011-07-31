@@ -52,18 +52,11 @@ private void sendPlayerPositionAndLook(World* world, Socket* socket)
 
 }
 
-//const byte position[]="\x0d\x40\x21\x00\x00\x00\x00\x00\x00\x40\x50\x40\x00\x00\x00\x00\x00\x40\x50\xa7\xae\x14\x80\x00\x00\x40\x21\x00\x00\x00\x00\x00\x00\xc3\x34\x00\x00\x00\x00\x00\x00\x00";
-
-private void debugPacketType(const char* format,...)
-{
-	//printf("%s",name);
-}
-
 typedef void PacketHandler(World* world, Socket* socket);
 
 private void readLoginRequest(World* world, Socket* socket)
 {
-	debugPacketType("Login Request\n");
+	PACKET_DEBUG_START(0x00, "Login Request\n");
 	readInt(socket);
 	readString16(socket);
 	readLong(socket);
@@ -72,20 +65,20 @@ private void readLoginRequest(World* world, Socket* socket)
 
 private void readHandshake(World* world, Socket* socket)
 {
-	debugPacketType("Handshake\n");
+	PACKET_DEBUG_START(0x00, "Handshake\n");
 	readString16(socket);
 	sendLoginRequest(world,socket);
 }
 
 private void readChatMessage(World* world, Socket* socket)
 {
-	debugPacketType("Chat Message\n");
+	PACKET_DEBUG_START(0x00, "Chat Message\n");
 	readString16(socket);
 }
 
 private void readTimeUpdate(World* world, Socket* socket)
 {
-	debugPacketType("Time Update\n");
+	PACKET_DEBUG_START(0x00, "Time Update\n");
 	uint64_t ticks=readLong(socket);
 
 	worldLock(world);
@@ -97,7 +90,7 @@ private void readTimeUpdate(World* world, Socket* socket)
 
 private void readEntityEquipment(World* world, Socket* socket)
 {
-	debugPacketType("Entity Equipment\n");
+	PACKET_DEBUG_START(0x00, "Entity Equipment\n");
 	readInt(socket);
 	readShort(socket);
 	readShort(socket);
@@ -106,7 +99,7 @@ private void readEntityEquipment(World* world, Socket* socket)
 
 private void readSpawnPosition(World* world, Socket* socket)
 {
-	debugPacketType("Spawn Position\n");
+	PACKET_DEBUG_START(0x00, "Spawn Position\n");
 	readInt(socket);
 	readInt(socket);
 	readInt(socket);
@@ -114,14 +107,14 @@ private void readSpawnPosition(World* world, Socket* socket)
 
 private void readUpdateHealth(World* world, Socket* socket)
 {
-	debugPacketType("Update Health\n");
+	PACKET_DEBUG_START(0x00, "Update Health\n");
 	readShort(socket);
 }
 
 private void readPlayerPositionLook(World* world, Socket* socket)
 {
 
-	debugPacketType("Player Position & Look\n");
+	PACKET_DEBUG_START(0x00, "Player Position & Look\n");
 
 	double x=readDouble(socket);
 	double stance=readDouble(socket);
@@ -164,7 +157,7 @@ private void readAnimation(World* world, Socket* socket)
 
 private void readNamedEntitySpawn(World* world, Socket* socket)
 {
-	debugPacketType("Named Entity Spawn\n");
+	PACKET_DEBUG_START(0x00, "Named Entity Spawn\n");
 	int id=readInt(socket);
 	char* name=readString16(socket);
 	int x=readInt(socket);
@@ -184,7 +177,7 @@ private void readNamedEntitySpawn(World* world, Socket* socket)
 
 private void readPickupSpawn(World* world, Socket* socket)
 {
-	debugPacketType("Pickup Spawn\n");
+	PACKET_DEBUG_START(0x00, "Pickup Spawn\n");
 	readInt(socket);
 	readShort(socket);
 	readByte(socket);
@@ -224,7 +217,7 @@ private void readAddObject(World* world, Socket* socket)
 
 private void readMobSpawn(World* world, Socket* socket)
 {
-	debugPacketType("Mob Spawn\n");
+	PACKET_DEBUG_START(0x00, "Mob Spawn\n");
 	readInt(socket);
 	readByte(socket);
 	readInt(socket);
@@ -237,7 +230,7 @@ private void readMobSpawn(World* world, Socket* socket)
 
 private void readEntityVelocity(World* world, Socket* socket)
 {
-	debugPacketType("Entity Velocity?\n");
+	PACKET_DEBUG_START(0x00, "Entity Velocity?\n");
 	readInt(socket);
 	readShort(socket);
 	readShort(socket);
@@ -246,13 +239,13 @@ private void readEntityVelocity(World* world, Socket* socket)
 
 private void readDestroyEnity(World* world, Socket* socket)
 {
-	debugPacketType("Destroy Entity\n");
+	PACKET_DEBUG_START(0x00, "Destroy Entity\n");
 	readInt(socket);
 }
 
 private void readEntityRelativeMove(World* world, Socket* socket)
 {
-	debugPacketType("Entity Relative Move\n");
+	PACKET_DEBUG_START(0x00, "Entity Relative Move\n");
 	readInt(socket);
 	readByte(socket);
 	readByte(socket);
@@ -261,7 +254,7 @@ private void readEntityRelativeMove(World* world, Socket* socket)
 
 private void readEntityLookAndRelativeMove(World* world, Socket* socket)
 {
-	debugPacketType("Entity Look and Relative Move\n");
+	PACKET_DEBUG_START(0x00, "Entity Look and Relative Move\n");
 	readInt(socket);
 	readByte(socket);
 	readByte(socket);
@@ -272,7 +265,7 @@ private void readEntityLookAndRelativeMove(World* world, Socket* socket)
 
 private void readEntityTeleport(World* world, Socket* socket)
 {
-	debugPacketType("Entity Teleport\n");
+	PACKET_DEBUG_START(0x00, "Entity Teleport\n");
 	readInt(socket);
 	readInt(socket);
 	readInt(socket);
@@ -283,14 +276,14 @@ private void readEntityTeleport(World* world, Socket* socket)
 
 private void readEntityStatus(World* world, Socket* socket)
 {
-	debugPacketType("Entity Status?\n");
+	PACKET_DEBUG_START(0x00, "Entity Status?\n");
 	readInt(socket);
 	readByte(socket);
 }
 
 private void readEntityMetadata(World* world, Socket* socket)
 {
-	debugPacketType("Entity Metadata\n");
+	PACKET_DEBUG_START(0x00, "Entity Metadata\n");
 	readInt(socket);
 	readStream(socket);
 }
@@ -302,7 +295,7 @@ private void readPreChunk(World* world, Socket* socket)
 	int y=readInt(socket);
 	readBool(socket);
 
-	debugPacketType("Pre-Chunk: %i %i\n",x,y);
+	PACKET_DEBUG_START(0x00, "Pre-Chunk: %i %i\n",x,y);
 
 }
 
@@ -377,7 +370,7 @@ private void readMapChunk(World* world, Socket* socket)
 
 private void readMultiBlockChange(World* world, Socket* socket)
 {
-	debugPacketType("Multi Block Change\n");
+	puts("Multi Block Change\n");
 
 	readInt(socket);
 	readInt(socket);
@@ -394,17 +387,22 @@ private void readMultiBlockChange(World* world, Socket* socket)
 
 private void readBlockChange(World* world, Socket* socket)
 {
-	debugPacketType("Block Change\n");
-	readInt(socket);
-	readByte(socket);
-	readInt(socket);
-	readByte(socket);
-	readByte(socket);
+	PACKET_DEBUG_START(0x00, "Block Change\n");
+	int x=readInt(socket);
+	int z=readByte(socket);
+	int y=readInt(socket);
+	byte id=readByte(socket);
+	byte metadata=readByte(socket);
+
+	Block b=worldGet(world,(Vec4i){x,y,z});
+	b.id=id;
+	b.metadata=metadata;
+	worldSet(world,(Vec4i){x,y,z},b);
 }
 
 private void readExplosion(World* world, Socket* socket)
 {
-	debugPacketType("Explosion\n");
+	PACKET_DEBUG_START(0x00, "Explosion\n");
 	readDouble(socket);
 	readDouble(socket);
 	readDouble(socket);
@@ -429,13 +427,13 @@ private void readSoundEffect(World* world, Socket* socket)
 
 private void readInvalidState(World* world, Socket* socket)
 {
-	debugPacketType("New/Invalid State\n");
+	PACKET_DEBUG_START(0x00, "New/Invalid State\n");
 	readByte(socket);
 }
 
 private void readSetSlot(World* world, Socket* socket)
 {
-	debugPacketType("Set slot\n");
+	PACKET_DEBUG_START(0x00, "Set slot\n");
 
 	readByte(socket);
 	readShort(socket);
@@ -451,7 +449,7 @@ private void readSetSlot(World* world, Socket* socket)
 
 private void readWindowItems(World* world, Socket* socket)
 {
-	debugPacketType("Window items\n");
+	PACKET_DEBUG_START(0x00, "Window items\n");
 	
 	readByte(socket);
 	int count=readShort(socket);
@@ -466,7 +464,7 @@ private void readWindowItems(World* world, Socket* socket)
 		{
 			int stack=readByte(socket);
 			int uses=readShort(socket);
-			debugPacketType("\t\t%i %i %i\n",item_id,stack,uses);
+			PACKET_DEBUG_START(0x00, "\t\t%i %i %i\n",item_id,stack,uses);
 		}
 		else
 		{
@@ -479,7 +477,7 @@ private void readWindowItems(World* world, Socket* socket)
 
 private void readIncrementStatistic(World* world, Socket* socket)
 {
-	debugPacketType("Increment Statistic\n");
+	PACKET_DEBUG_START(0x00, "Increment Statistic\n");
 	readInt(socket);
 	readByte(socket);
 }
@@ -497,7 +495,7 @@ private void readUpdateSign(World* world, Socket* socket)
 
 private void readKick(World* world, Socket* socket)
 {
-	debugPacketType("Kick\n");
+	PACKET_DEBUG_START(0x00, "Kick\n");
 	readString16(socket);
 	exit(0);
 }

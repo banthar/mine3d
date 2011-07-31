@@ -13,7 +13,7 @@ static SDL_Surface* screen;
 static bool fullscreen=false;
 static SDL_Rect window_rect={0,0,720,420};
 static SDL_Rect fullscreen_rect;
-bool grab_mouse=false;
+extern bool grab_mouse;
 static World world;
 
 private void grabMouse()

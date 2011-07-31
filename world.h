@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "config.h"
+
 #include "math.h"
 #include "noise.h"
 #include "actor.h"

@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-extern bool grab_mouse;
+bool grab_mouse=false;
 
 private Segment* newSegment();
 
