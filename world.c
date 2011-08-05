@@ -105,6 +105,58 @@ public void worldSet(World* this, Vec4i pos, Block block)
 
 }
 
+public Vec4i worldRay(World* world, Vec4f pos0, Vec4f normal, int max_length)
+{
+
+	Vec4i pos1=(Vec4i){floor(pos0[0]),floor(pos0[1]),floor(pos0[2])};
+	Vec4i step=(Vec4i){sign(normal[0]),sign(normal[1]),sign(normal[2])};
+	Vec4f delta=(Vec4f){fabs(1/normal[0]),fabs(1/normal[1]),fabs(1/normal[2])};
+	Vec4f max;
+	
+	for(int d=0;d<3;d++)
+	{
+		
+		if(normal[d]==0)
+			max[d]=1.0/0.0;
+		else if(normal[d]<0)
+			max[d]=-fract(pos0[d])/normal[d];
+		else
+			max[d]=(1-fract(pos0[d]))/normal[d];
+			
+	}
+
+	while(true)
+	{
+
+		int i;
+
+		if(max[0]<=max[1] && max[0]<=max[2])
+			i=0;
+		else if(max[1]<=max[0] && max[1]<=max[2])
+			i=1;
+		else if(max[2]<=max[0] && max[2]<=max[1])
+			i=2;
+		else
+			panic("unreachable");
+			
+		pos1[i]+=step[i];
+		max[i]+=delta[i];
+	
+		if(abs(pos1[i]-pos0[i])>max_length)
+			break;
+	
+		if(worldGet(world,pos1).id!=0)
+		{
+			int face=(i<<1)|(step[i]<0);
+			pos1[3]=face;
+			return pos1;
+		}
+	}
+
+	return (Vec4i){0,0,0,-1};
+
+}
+
 private void renderSegment(World* world, Segment* this, Vec4i pos)
 {
 
@@ -158,38 +210,6 @@ private void drawSegment(World* world, Segment* this, Vec4i pos)
 		glTexCoordPointer(2,GL_FLOAT,sizeof(Vertex), (void*)offsetof(Vertex,texCoord));
 
 		glDrawArrays(GL_QUADS, 0, this->n);
-
-	}
-	else if( false && (this==NULL || this->rendered==false))
-	{
-
-		static const Vec4i faces[6][4]={
-			{{0,0,0},{1,0,0},{1,1,0},{0,1,0}},
-			{{0,0,1},{0,1,1},{1,1,1},{1,0,1}},
-
-			{{0,0,0},{0,0,1},{1,0,1},{1,0,0}},
-			{{0,1,0},{1,1,0},{1,1,1},{0,1,1}},
-
-			{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
-			{{1,0,0},{1,0,1},{1,1,1},{1,1,0}},
-		};
-
-		glBegin(GL_LINES);
-		for(int face=0;face<6;face++)
-		for(int vert=0;vert<4;vert++)
-		{
-			Vec4i v=(pos+faces[face][vert])*SEGMENT_SIZEV;
-			if(this==NULL)
-				glColor3f(1.0,0.0,0.0);
-			else if(this->rendered==false)
-				glColor3f(1.0,1.0,0.0);
-			else
-				glColor3f(0.0,1.0,0.0);
-				
-			glVertex3i(v[0],v[1],v[2]);
-		}
-
-		glEnd();
 
 	}
 
@@ -397,12 +417,7 @@ private void worldDrawSegment(World *this,int x, int y, int z)
 
 }
 
-static float fract(float x)
-{
-	return x>0?x-floor(x):x-floor(x);
-}
-
-private void drawSelection(World* world, Vec4i pos, int f)
+private void drawSelection(World* world, Vec4i pos)
 {
 	static const Vec4i face[6][4]={
 		{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
@@ -418,85 +433,10 @@ private void drawSelection(World* world, Vec4i pos, int f)
 	glDisable(GL_DEPTH_TEST);
 	glBegin(GL_LINE_STRIP);
 	for(int i=0;i<4;i++)
-		glVertexi(pos+face[f][i]);
-	glVertexi(pos+face[f][0]);
+		glVertexi(pos+face[pos[3]][i]);
+	glVertexi(pos+face[pos[3]][0]);
 	glEnd();
 	
-}
-
-private Vec4i castRay(World* world, Vec4f pos0, Vec4f normal, int max_length)
-{
-
-	
-	Vec4i pos1=(Vec4i){floor(pos0[0]),floor(pos0[1]),floor(pos0[2])};
-	Vec4i step=(Vec4i){sign(normal[0]),sign(normal[1]),sign(normal[2])};
-	Vec4f delta=(Vec4f){fabs(1/normal[0]),fabs(1/normal[1]),fabs(1/normal[2])};
-	Vec4f max;
-	
-	
-	for(int d=0;d<3;d++)
-	{
-		
-		if(normal[d]==0)
-			max[d]=1.0/0.0;
-		else if(normal[d]<0)
-			max[d]=-fract(pos0[d])/normal[d];
-		else
-			max[d]=(1-fract(pos0[d]))/normal[d];
-			
-	}
-
-	int n=100;
-
-	while(n-->0)
-	{
-
-		//glBegin(GL_LINES);
-		//glVertexi(pos1);
-
-		int i;
-
-		if(max[0]<=max[1] && max[0]<=max[2])
-			i=0;
-		else if(max[1]<=max[0] && max[1]<=max[2])
-			i=1;
-		else if(max[2]<=max[0] && max[2]<=max[1])
-			i=2;
-		else
-			panic("unreachable");
-			
-		printf("%i - (%f %f %f)\n",i, max[0], max[1], max[2]);
-
-		pos1[i]+=step[i];
-		max[i]+=delta[i];
-
-		//glVertexi(pos1);
-		//glEnd();
-
-		//glBegin(GL_POINTS);
-		//glVertexi(pos1);
-		//glEnd();
-	
-		if(worldGet(world,pos1).id!=0)
-		{
-			int face=(i<<1)|(delta[i]>0);
-			drawSelection(world,pos1,face);
-			return pos1;
-		}
-	}
-
-	return (Vec4i){-1,-1,-1,-1};
-
-}
-
-private Vec4f rotationNormal(Vec2f rot)
-{
-	
-	return (Vec4f){
-		-sin(rot[0])*sin(rot[1]),
-		-cos(rot[0])*sin(rot[1]),
-		-cos(rot[1]),
-	};
 }
 
 public void worldDraw(World *world)
@@ -558,13 +498,10 @@ public void worldDraw(World *world)
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
 
-	Vec4i p=castRay(world, world->player.pos,  rotationNormal(world->player.rot),16);
+	Vec4i p=worldRay(world, world->player.pos+world->player.headOffset,  rotationNormal(world->player.rot),3);
 
-	glPointSize(3);
-
-	glBegin(GL_POINTS);
-	glVertexi(p);
-	glEnd();
+	if(p[3]!=-1)
+		drawSelection(world,p);
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();

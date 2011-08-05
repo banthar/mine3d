@@ -7,7 +7,9 @@
 
 #include "world.h"
 
-typedef struct
+typedef struct Client Client;
+
+struct Client
 {
 
 	SDL_Surface* screen;
@@ -24,4 +26,4 @@ typedef struct
 	SDL_mutex* socketLock;
 	Socket socket;
 
-}Client;
+};

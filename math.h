@@ -9,6 +9,10 @@
 #define max3(a,b,c) max(a,max(b,c))
 #define min3(a,b,c) min(a,min(b,c))
 
+static inline float fract(float x)
+{
+	return x>0?x-floor(x):x-floor(x);
+}
 
 static inline double clampf(double v, double min, double max)
 {
@@ -42,4 +46,15 @@ typedef VECTOR(short,4) Vec4s;
 static inline float length4f(Vec4f v)
 {
 	return sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]+v[3]*v[3]);
+}
+
+
+static inline Vec4f rotationNormal(Vec2f rot)
+{
+	
+	return (Vec4f){
+		-sin(rot[0])*sin(rot[1]),
+		-cos(rot[0])*sin(rot[1]),
+		-cos(rot[1]),
+	};
 }

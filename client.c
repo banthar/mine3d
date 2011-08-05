@@ -49,6 +49,23 @@ private __attribute__((noreturn)) void quit(Client* client)
 	exit(0);
 }
 
+
+private bool startDigginig(Client* client)
+{
+
+	Vec4i p=worldRay(&client->world, client->world.player.pos+client->world.player.headOffset,  rotationNormal(client->world.player.rot),3);
+
+	if(p[3]==-1)
+		return false;
+
+	sendPlayerDigging(client,0,p,p[3]);
+	sendPlayerDigging(client,2,p,p[3]);
+	
+	worldSet(&client->world,p,(Block){.id=0});
+	
+	return true;
+}
+
 private void saveScreenshoot(Client* client)
 {
 	
@@ -91,6 +108,14 @@ private bool handleEvent(Client* client, const SDL_Event* event)
 					return true;
 			}
 			break;
+		case SDL_MOUSEBUTTONDOWN:
+			switch(event->button.button)
+			{
+				case 1:
+					return startDigginig(client);
+				default:
+					return false;
+			}
 		case SDL_MOUSEMOTION:
 			if(client->grab_mouse || event->motion.state)
 				return true;

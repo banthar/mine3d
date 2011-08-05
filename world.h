@@ -22,6 +22,8 @@
 #define VIEW_RANGE 32
 #define TEXTURE_SIZE 16
 
+typedef struct World World;
+
 typedef struct
 {
 	Block data[SEGMENT_SIZE][SEGMENT_SIZE][SEGMENT_SIZE];
@@ -63,6 +65,7 @@ public void worldUnlock(World* this);
 public void worldDestroy(World* this);
 public void worldTick(World* this);
 public void worldDraw(World* this);
+public Vec4i worldRay(World* world, Vec4f pos0, Vec4f normal, int max_length);
 public bool worldEvent(World* this, const SDL_Event* event);
 public void worldSet(World* this, Vec4i pos, Block block);
 public Block worldGet(World* this, Vec4i pos);

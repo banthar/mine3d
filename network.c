@@ -49,6 +49,25 @@ private void sendPlayerPositionAndLook(Client* client)
 	writeBool(&client->socket,client->world.player.flying);
 }
 
+public void sendPlayerDigging(Client* client, byte status, Vec4i location, byte face)
+{
+	
+	SDL_LockMutex(client->socketLock);
+
+	writeByte(&client->socket,0x0E);
+	
+	writeByte(&client->socket,status);
+	writeInt(&client->socket,location[0]);
+	writeByte(&client->socket,location[2]);
+	writeInt(&client->socket,location[1]);
+	writeByte(&client->socket,face);
+
+	socketFlush(&client->socket);
+
+	SDL_UnlockMutex(client->socketLock);
+
+}
+
 typedef void PacketHandler(Client* client);
 
 private void readLoginRequest(Client* client)

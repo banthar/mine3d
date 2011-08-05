@@ -4,5 +4,7 @@
 #include "socket.h"
 #include "world.h"
 
-public int networkMain(void* data);
+typedef struct Client Client;
 
+public int networkMain(void* data);
+public void sendPlayerDigging(Client* client, byte status, Vec4i location, byte face);
