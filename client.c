@@ -49,6 +49,20 @@ private __attribute__((noreturn)) void quit(Client* client)
 	exit(0);
 }
 
+private void saveScreenshoot(Client* client)
+{
+	
+	byte pixels[client->screen->w*client->screen->h*3];
+	
+	glReadPixels(0,0,client->screen->w,client->screen->h,GL_RGB,GL_UNSIGNED_BYTE,pixels);
+
+	FILE* out=fopen("screen.ppm","w");
+	fprintf(out,"P6\n%i %i\n255\n",client->screen->w,client->screen->h);
+	fwrite(pixels,sizeof(pixels),1,out);
+	fclose(out);
+
+}
+
 private bool handleEvent(Client* client, const SDL_Event* event)
 {
 	switch(event->type)
@@ -69,6 +83,9 @@ private bool handleEvent(Client* client, const SDL_Event* event)
 					client->fullscreen=!client->fullscreen;
 					client->grab_mouse|=client->fullscreen;
 					initVideo(client);
+					return false;
+				case SDLK_F2:
+					saveScreenshoot(client);
 					return false;
 				default:
 					return true;

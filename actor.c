@@ -58,8 +58,6 @@ private bool actorCollision(World* world, const Actor* actor)
 public void actorTick(World* world, Actor* actor)
 {
 	
-	actor->v[2]-=0.04;
-	
 	for(int d=0;d<3;d++)
 	{
 		
@@ -91,5 +89,7 @@ public void actorTick(World* world, Actor* actor)
 		}
 
 	}
+
+	actor->v[2]-=0.04;
 	
 }

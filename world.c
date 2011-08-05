@@ -308,13 +308,12 @@ private void playerTick(World* world)
 	else
 	{
 	
-		world->player.pos[0]-=sin(world->player.rot[0])*sin(world->player.rot[1])*vy*v;
-		world->player.pos[1]-=cos(world->player.rot[0])*sin(world->player.rot[1])*vy*v;
-		world->player.pos[2]-=cos(world->player.rot[1])*vy*v;
+		world->player.v[0]=-sin(world->player.rot[0])*sin(world->player.rot[1])*vy*v+cos(world->player.rot[0])*vx*v;
+		world->player.v[1]=-cos(world->player.rot[0])*sin(world->player.rot[1])*vy*v-sin(world->player.rot[0])*vx*v;
+		world->player.v[2]=-cos(world->player.rot[1])*vy*v;
 
-		world->player.pos[0]-=-cos(world->player.rot[0])*vx*v;
-		world->player.pos[1]-=sin(world->player.rot[0])*vx*v;
-
+		actorTick(world,&world->player);
+		
 	}
 
 }
@@ -398,25 +397,95 @@ private void worldDrawSegment(World *this,int x, int y, int z)
 
 }
 
-private Vec4f castRay(World* world, Vec4f pos0, Vec4f dir)
+static float fract(float x)
 {
+	return x>0?x-floor(x):x-floor(x);
+}
+
+private void drawSelection(World* world, Vec4i pos, int f)
+{
+	static const Vec4i face[6][4]={
+		{{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
+		{{1,1,0},{1,0,0},{1,0,1},{1,1,1}},
+
+		{{1,0,0},{0,0,0},{0,0,1},{1,0,1}},
+		{{0,1,0},{1,1,0},{1,1,1},{0,1,1}},
+
+		{{0,0,0},{1,0,0},{1,1,0},{0,1,0}},
+		{{0,0,1},{0,1,1},{1,1,1},{1,0,1}},
+	};
 	
-	glBegin(GL_LINES);
-	glVertexf(pos0);
+	glDisable(GL_DEPTH_TEST);
+	glBegin(GL_LINE_STRIP);
+	for(int i=0;i<4;i++)
+		glVertexi(pos+face[f][i]);
+	glVertexi(pos+face[f][0]);
+	glEnd();
 	
-	Vec4f pos1=pos0;
-	Vec4f s=(Vec4f){sign(dir[0]),sign(dir[1]),sign(dir[2])};
+}
+
+private Vec4i castRay(World* world, Vec4f pos0, Vec4f normal, int max_length)
+{
+
+	
+	Vec4i pos1=(Vec4i){floor(pos0[0]),floor(pos0[1]),floor(pos0[2])};
+	Vec4i step=(Vec4i){sign(normal[0]),sign(normal[1]),sign(normal[2])};
+	Vec4f delta=(Vec4f){fabs(1/normal[0]),fabs(1/normal[1]),fabs(1/normal[2])};
+	Vec4f max;
+	
 	
 	for(int d=0;d<3;d++)
 	{
-		pos1[d]=min(floor(pos1[d]*s[d]+1),(pos1[d]+dir[d])*s[d])*s[d];
-		glVertexf(pos1);
-		glVertexf(pos1);
+		
+		if(normal[d]==0)
+			max[d]=1.0/0.0;
+		else if(normal[d]<0)
+			max[d]=-fract(pos0[d])/normal[d];
+		else
+			max[d]=(1-fract(pos0[d]))/normal[d];
+			
 	}
 
-	glEnd();
+	int n=100;
 
-	return pos1;
+	while(n-->0)
+	{
+
+		//glBegin(GL_LINES);
+		//glVertexi(pos1);
+
+		int i;
+
+		if(max[0]<=max[1] && max[0]<=max[2])
+			i=0;
+		else if(max[1]<=max[0] && max[1]<=max[2])
+			i=1;
+		else if(max[2]<=max[0] && max[2]<=max[1])
+			i=2;
+		else
+			panic("unreachable");
+			
+		printf("%i - (%f %f %f)\n",i, max[0], max[1], max[2]);
+
+		pos1[i]+=step[i];
+		max[i]+=delta[i];
+
+		//glVertexi(pos1);
+		//glEnd();
+
+		//glBegin(GL_POINTS);
+		//glVertexi(pos1);
+		//glEnd();
+	
+		if(worldGet(world,pos1).id!=0)
+		{
+			int face=(i<<1)|(delta[i]>0);
+			drawSelection(world,pos1,face);
+			return pos1;
+		}
+	}
+
+	return (Vec4i){-1,-1,-1,-1};
 
 }
 
@@ -450,7 +519,7 @@ public void worldDraw(World *world)
 
 	glTranslatev(-world->player.pos-world->player.headOffset);
 
-
+	glColor3f(1.0,1.0,1.0);
 	glBegin(GL_LINES);
 	int n=16;
 	for(int i=-n;i<n;i++)
@@ -489,18 +558,27 @@ public void worldDraw(World *world)
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
 
-	Vec4f p=castRay(world, world->player.pos,  rotationNormal(world->player.rot)*(Vec4f){10,10,10,10});
+	Vec4i p=castRay(world, world->player.pos,  rotationNormal(world->player.rot),16);
 
-	glPointSize(8);
+	glPointSize(3);
 
 	glBegin(GL_POINTS);
-	glVertexf(p);
+	glVertexi(p);
 	glEnd();
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 
+	glColor3f(1,1,1);
 
+	glBegin(GL_LINES);
+	glVertex3f(+1,0,-20);
+	glVertex3f(-1,0,-20);
+	
+	glVertex3f(0,+1,-20);
+	glVertex3f(0,-1,-20);
+	glEnd();
+	
 }
 
 

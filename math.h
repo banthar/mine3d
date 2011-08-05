@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <math.h>
+
 #define max(a,b) ((a)>(b)?(a):(b))
 #define min(a,b) ((a)>(b)?(b):(a))
 
@@ -37,4 +39,7 @@ typedef VECTOR(unsigned char,4) Vec4b;
 typedef VECTOR(short,2) Vec2s;
 typedef VECTOR(short,4) Vec4s;
 
-
+static inline float length4f(Vec4f v)
+{
+	return sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]+v[3]*v[3]);
+}
