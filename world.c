@@ -398,6 +398,37 @@ private void worldDrawSegment(World *this,int x, int y, int z)
 
 }
 
+private Vec4f castRay(World* world, Vec4f pos0, Vec4f dir)
+{
+	
+	glBegin(GL_LINES);
+	glVertexf(pos0);
+	
+	Vec4f pos1=pos0;
+	Vec4f s=(Vec4f){sign(dir[0]),sign(dir[1]),sign(dir[2])};
+	
+	for(int d=0;d<3;d++)
+	{
+		pos1[d]=min(floor(pos1[d]*s[d]+1),(pos1[d]+dir[d])*s[d])*s[d];
+		glVertexf(pos1);
+		glVertexf(pos1);
+	}
+
+	glEnd();
+
+	return pos1;
+
+}
+
+private Vec4f rotationNormal(Vec2f rot)
+{
+	
+	return (Vec4f){
+		-sin(rot[0])*sin(rot[1]),
+		-cos(rot[0])*sin(rot[1]),
+		-cos(rot[1]),
+	};
+}
 
 public void worldDraw(World *world)
 {
@@ -433,6 +464,8 @@ public void worldDraw(World *world)
 
 	//actorDrawBBox(&world->player);
 
+	worldTick(world);
+
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
@@ -455,6 +488,14 @@ public void worldDraw(World *world)
 	glDisableClientState(GL_COLOR_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
+
+	Vec4f p=castRay(world, world->player.pos,  rotationNormal(world->player.rot)*(Vec4f){10,10,10,10});
+
+	glPointSize(8);
+
+	glBegin(GL_POINTS);
+	glVertexf(p);
+	glEnd();
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();

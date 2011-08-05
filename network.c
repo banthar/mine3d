@@ -589,7 +589,7 @@ public int networkMain(void* data)
 	socketInit();
 
 	socketOpen(&client->socket,"127.0.0.1",25565) or panic("unable to connect");
-
+	
 	sendHandShake(client);
 
 	SDL_Thread* thread=NULL;
@@ -623,9 +623,6 @@ public int networkMain(void* data)
 		{
 			thread=SDL_CreateThread(updateThread, client);
 		}
-
-
-		
 
 	}
 

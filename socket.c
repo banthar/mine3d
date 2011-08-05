@@ -246,7 +246,8 @@ public bool socketOpen(Socket* sock, const char* host, short port)
 
 	sock->fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-	assert(sock->fd>=0)
+	if(sock->fd<0)
+		return false;
 
 	struct sockaddr_in address={0};
 
@@ -257,7 +258,12 @@ public bool socketOpen(Socket* sock, const char* host, short port)
 	assert(ret>0);
 
 	ret = connect(sock->fd, (struct sockaddr *)&address, sizeof(address) );
-	assert(ret==0);
+	
+	if(ret!=0)
+	{
+		close(sock->fd);
+		return false;
+	}
 	
 	return true;
 

@@ -94,7 +94,7 @@ export int main(int argc, char* argv[])
 	if(SDL_Init(SDL_INIT_VIDEO)!=0)
 		panic("sdl error");
 
-	signal(SIGINT, SIG_DFL);
+	//signal(SIGINT, SIG_DFL);
 
 	Client client={
 		.window_rect=(SDL_Rect){0,0,720,480},
@@ -123,7 +123,7 @@ export int main(int argc, char* argv[])
 
 	SDL_CreateThread(networkMain, &client);
 
-	while(true)
+	while(!client.stop)
 	{
 		
 		SDL_Event event;
@@ -136,7 +136,7 @@ export int main(int argc, char* argv[])
 
 		int t=SDL_GetTicks();
 
-		worldTick(&client.world);
+		//worldTick(&client.world);
 
 		glClearColor(0.76,0.81,1.0,0.0);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);

@@ -16,6 +16,8 @@ typedef struct
 	bool fullscreen;
 	bool grab_mouse;
 
+	bool stop;
+
 	SDL_mutex* worldLock;
 	World world;
 

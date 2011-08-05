@@ -18,6 +18,11 @@ static inline double clampf(double v, double min, double max)
 		return v;
 }
 
+static inline float sign(float x)
+{
+	return x>0?1:x==0?0:-1;
+}
+
 #define VECTOR(type,size) type __attribute__ ((vector_size ((size)*sizeof(type))))
 
 typedef VECTOR(int,2) Vec2i;

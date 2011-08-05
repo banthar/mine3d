@@ -8,11 +8,6 @@
 
 #include <math.h>
 
-private float sign(float x)
-{
-	return x>0?1:x==0?0:-1;
-}
-
 public void actorDrawBBox(Actor* actor)
 {
 	
