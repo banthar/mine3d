@@ -6,9 +6,10 @@
 
 typedef struct
 {
-	int fd;
-	int buffer_length;
-	byte buffer[1024*4];
+    int fd;
+    int buffer_length;
+    void (*onError)();
+    byte buffer[1024*4];
 }Socket;
 
 public uint8_t readByte(Socket* socket);
@@ -34,7 +35,6 @@ public void socketRead(Socket* socket, void* data, size_t length);
 public void socketInit();
 public bool socketOpen(Socket* sock, const char* host, short port);
 public void socketClose(Socket* socket);
-
 
 
 

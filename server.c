@@ -14,6 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <zlib.h>
+#include <setjmp.h>
 #include "SDL.h"
 
 static void sendLoginRequest(Socket* socket)
@@ -229,59 +230,72 @@ typedef struct
 static int clientThread(void* data)
 {
 
-    socketInit();
-    Client client={
+    Client client;
+    jmp_buf env;
+
+    void onError()
+    {
+        fprintf(stderr,"client error\n");
+        socketFlush(&client.socket);
+        longjmp(env,1);
+    }
+
+    client=(Client){
         .socket={
             .fd=(intptr_t)data,
+            .onError=onError,
         },
         .mutex=SDL_CreateMutex(),
     };
 
     SDL_LockMutex(client.mutex);
 
-    assert(readByte(&client.socket)==0x02);
-    readHandshake(&client.socket);
-    sendHandshake(&client.socket);
-    socketFlush(&client.socket);
-    assert(readByte(&client.socket)==0x01);
-    readLoginRequest(&client.socket);
-    sendLoginRequest(&client.socket);
-    sendPlayerPositionAndLook(&client.socket);
-    sendWorld(&client.socket);
-    socketFlush(&client.socket);
-
-    while(true)
+    if(!setjmp(env))
     {
 
+        assert(readByte(&client.socket)==0x02);
+        readHandshake(&client.socket);
+        sendHandshake(&client.socket);
         socketFlush(&client.socket);
-        SDL_UnlockMutex(client.mutex);
-        byte packet_id=readByte(&client.socket);
-        SDL_LockMutex(client.mutex);
+        assert(readByte(&client.socket)==0x01);
+        readLoginRequest(&client.socket);
+        sendLoginRequest(&client.socket);
+        sendPlayerPositionAndLook(&client.socket);
+        sendWorld(&client.socket);
+        socketFlush(&client.socket);
 
-        PacketHandler* handler=packetHandler[packet_id];
-
-        if(handler==NULL)
+        while(true)
         {
-            char buf[1024];
-            sprintf(buf,"Unknown packet: 0x%02x",packet_id);
-            sendKick(&client.socket,buf);
+
             socketFlush(&client.socket);
-            break;
-        }
-        else
-        {
-            (*handler)(&client.socket);
-        }
+            SDL_UnlockMutex(client.mutex);
+            byte packet_id=readByte(&client.socket);
+            SDL_LockMutex(client.mutex);
 
+            PacketHandler* handler=packetHandler[packet_id];
+
+            if(handler==NULL)
+            {
+                char buf[1024];
+                sprintf(buf,"Unknown packet: 0x%02x",packet_id);
+                sendKick(&client.socket,buf);
+                socketFlush(&client.socket);
+                break;
+            }
+            else
+            {
+                (*handler)(&client.socket);
+            }
+
+
+        }
 
     }
 
-    socketFlush(&client.socket);
-    SDL_Delay(25);
     close(client.socket.fd);
 
     SDL_UnlockMutex(client.mutex);
-
+    SDL_DestroyMutex(client.mutex);
     return 0;
 
 }
@@ -311,6 +325,8 @@ static int openListenSock()
 
 int main(int argc, char* argv[])
 {
+
+    socketInit();
 
     int socket=openListenSock();
 
