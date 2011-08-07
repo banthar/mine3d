@@ -4,11 +4,11 @@ PACKAGES:=sdl glew sdl-image gl ftgl
 CFLAGS:=-std=c1x -fplan9-extensions `pkg-config --cflags $(PACKAGES)`
 LDFLAGS:=-lm `pkg-config --libs $(PACKAGES)` -lz
 
-CFLAGS+=-g -Wall -DDEBUG
-LDFLAGS+=-g -lstd
+debug: CFLAGS+=-g -Wall -DDEBUG
+debug: LDFLAGS+=-g -lstd
 
-# CFLAGS+=-O3 -flto -Werror -Wall
-# LDFLAGS+=-flto
+release: CFLAGS+=-O3 -flto -Werror -Wall
+release: LDFLAGS+=-flto
 
 .PHONY: run gdb debug clean
 
@@ -23,7 +23,7 @@ server: actor.o player.o server.o utils.o noise.o world.o block.o network.o sock
 *.o: Makefile *.h
 
 clean:
-	rm -f $(OBJECTS)
+	rm -f *.o
 
 run: client
 	./client

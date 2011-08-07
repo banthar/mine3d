@@ -152,47 +152,49 @@ static void readLoginRequest(Socket* socket)
 {
     readInt(socket);
     char* name=readString16(socket);
+    printf("login: %s\n",name);
+    free(name);
     readLong(socket);
     readByte(socket);
-    printf("login: %s\n",name);
 }
 
 static void readHandshake(Socket* socket)
 {
     char* name=readString16(socket);
     printf("handshake: %s\n",name);
+    free(name);
 }
 
 static void readPlayerFlying(Socket* socket)
 {
-    bool on_ground=readBool(socket);
+    /*bool on_ground=*/readBool(socket);
 }
 
 static void readPlayerPosition(Socket* socket)
 {
-    double x=readDouble(socket);
-    double stance=readDouble(socket);
-    double y=readDouble(socket);
-    double z=readDouble(socket);
-    bool on_ground=readBool(socket);
+    /*double x=*/readDouble(socket);
+    /*double stance=*/readDouble(socket);
+    /*double y=*/readDouble(socket);
+    /*double z=*/readDouble(socket);
+    /*bool on_ground=*/readBool(socket);
 }
 
 static void readPlayerLook(Socket* socket)
 {
-    float yaw=readFloat(socket);
-    float pitch=readFloat(socket);
-    bool on_ground=readBool(socket);
+    /*float yaw=*/readFloat(socket);
+    /*float pitch=*/readFloat(socket);
+    /*bool on_ground=*/readBool(socket);
 }
 
 static void readPlayerPositionAndLook(Socket* socket)
 {
-    double x=readDouble(socket);
-    double stance=readDouble(socket);
-    double y=readDouble(socket);
-    double z=readDouble(socket);
-    float yaw=readFloat(socket);
-    float pitch=readFloat(socket);
-    bool on_ground=readBool(socket);
+    /*double x=*/readDouble(socket);
+    /*double stance=*/readDouble(socket);
+    /*double y=*/readDouble(socket);
+    /*double z=*/readDouble(socket);
+    /*float yaw=*/readFloat(socket);
+    /*float pitch=*/readFloat(socket);
+    /*bool on_ground=*/readBool(socket);
 }
 
 static void readPlayerDigging(Socket* socket)
@@ -221,56 +223,61 @@ PacketHandler* packetHandler[256]={
     [0x12] = readAnimation,
 };
 
+typedef enum
+{
+    FREE,
+
+}ClientState;
+
 typedef struct
 {
+    int state;
     Socket socket;
     SDL_mutex* mutex;
+    SDL_Thread* thread;
+    int eid;
 }Client;
 
 static int clientThread(void* data)
 {
 
-    Client client;
+    Client* client=(Client*)data;
     jmp_buf env;
 
     void onError()
     {
         fprintf(stderr,"client error\n");
-        socketFlush(&client.socket);
+        socketFlush(&client->socket);
         longjmp(env,1);
     }
 
-    client=(Client){
-        .socket={
-            .fd=(intptr_t)data,
-            .onError=onError,
-        },
-        .mutex=SDL_CreateMutex(),
-    };
 
-    SDL_LockMutex(client.mutex);
+    client->socket.onError=onError;
+    client->mutex=SDL_CreateMutex();
+
+    SDL_LockMutex(client->mutex);
 
     if(!setjmp(env))
     {
 
-        assert(readByte(&client.socket)==0x02);
-        readHandshake(&client.socket);
-        sendHandshake(&client.socket);
-        socketFlush(&client.socket);
-        assert(readByte(&client.socket)==0x01);
-        readLoginRequest(&client.socket);
-        sendLoginRequest(&client.socket);
-        sendPlayerPositionAndLook(&client.socket);
-        sendWorld(&client.socket);
-        socketFlush(&client.socket);
+        assert(readByte(&client->socket)==0x02);
+        readHandshake(&client->socket);
+        sendHandshake(&client->socket);
+        socketFlush(&client->socket);
+        assert(readByte(&client->socket)==0x01);
+        readLoginRequest(&client->socket);
+        sendLoginRequest(&client->socket);
+        sendPlayerPositionAndLook(&client->socket);
+        sendWorld(&client->socket);
+        socketFlush(&client->socket);
 
         while(true)
         {
 
-            socketFlush(&client.socket);
-            SDL_UnlockMutex(client.mutex);
-            byte packet_id=readByte(&client.socket);
-            SDL_LockMutex(client.mutex);
+            socketFlush(&client->socket);
+            SDL_UnlockMutex(client->mutex);
+            byte packet_id=readByte(&client->socket);
+            SDL_LockMutex(client->mutex);
 
             PacketHandler* handler=packetHandler[packet_id];
 
@@ -278,13 +285,14 @@ static int clientThread(void* data)
             {
                 char buf[1024];
                 sprintf(buf,"Unknown packet: 0x%02x",packet_id);
-                sendKick(&client.socket,buf);
-                socketFlush(&client.socket);
+                fprintf(stderr,buf);
+                sendKick(&client->socket,buf);
+                socketFlush(&client->socket);
                 break;
             }
             else
             {
-                (*handler)(&client.socket);
+                (*handler)(&client->socket);
             }
 
 
@@ -292,10 +300,13 @@ static int clientThread(void* data)
 
     }
 
-    close(client.socket.fd);
+    close(client->socket.fd);
 
-    SDL_UnlockMutex(client.mutex);
-    SDL_DestroyMutex(client.mutex);
+    SDL_UnlockMutex(client->mutex);
+    SDL_DestroyMutex(client->mutex);
+
+    client->state=0;
+
     return 0;
 
 }
@@ -315,9 +326,11 @@ static int openListenSock()
     stSockAddr.sin_port = htons(25565);
     stSockAddr.sin_addr.s_addr = INADDR_ANY;
 
-    assert(! bind(listen_sock,(const struct sockaddr *)&stSockAddr, sizeof(struct sockaddr_in)));
+    if( bind(listen_sock,(const struct sockaddr *)&stSockAddr, sizeof(struct sockaddr_in)) != 0 )
+        panic("bind error");
 
-    assert(! listen(listen_sock, 10));
+    if( listen(listen_sock, 10) != 0 )
+        panic("listen error");
 
     return listen_sock;
 
@@ -332,14 +345,42 @@ int main(int argc, char* argv[])
 
     assert(socket>=0);
 
+    Client client[16]={};
+
     while(true)
     {
 
-        int client=accept(socket,NULL,NULL);
+        int firstFree=-1;
 
-        assert(client>=0);
+        for(int i=lengthof(client)-1;i>=0;i--)
+        {
+            if(client[i].state==0)
+            {
+                firstFree=i;
 
-        SDL_CreateThread(clientThread,(void*)(intptr_t)client);
+                if(client[i].thread!=NULL)
+                {
+                    SDL_WaitThread(client[i].thread,NULL);
+                    client[i]=(Client){0};
+                }
+            }
+        }
+
+        int fd=accept(socket,NULL,NULL);
+
+        assert(fd>=0);
+
+        if(firstFree>=0)
+        {
+            client[firstFree].state=1;
+            client[firstFree].socket.fd=fd;
+            client[firstFree].thread=SDL_CreateThread(clientThread,&client[firstFree]);
+        }
+        else
+        {
+            close(fd);
+        }
 
     }
+
 }

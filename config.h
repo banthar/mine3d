@@ -5,10 +5,13 @@
 
 typedef uint8_t byte;
 
+#define lengthof(x) (sizeof(x)/sizeof(*(x)))
+
 #if DEBUG
 #include <std/error.h>
 #else
 #define panic(...) abort()
+#define panicv(...) abort()
 #define assert(x)
 #endif
 

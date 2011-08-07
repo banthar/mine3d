@@ -322,8 +322,8 @@ private void readEntityMetadata(Client* client)
 private void readPreChunk(Client* client)
 {
     PACKET_DEBUG_START(0x00, "Pre-Chunk");
-    int x=readInt(&client->socket);
-    int y=readInt(&client->socket);
+    readInt(&client->socket);
+    readInt(&client->socket);
     readBool(&client->socket);
 }
 
@@ -514,8 +514,8 @@ private void readWindowItems(Client* client)
 
         if(item_id!=0xffff)
         {
-            int stack=readByte(&client->socket);
-            int uses=readShort(&client->socket);
+            readByte(&client->socket);
+            readShort(&client->socket);
         }
         else
         {

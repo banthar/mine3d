@@ -8,54 +8,53 @@
 
 typedef struct
 {
-	Vec4i pos;
-	Vec4f color;
-	Vec4f normal;
-	Vec2f texCoord;
+    Vec4i pos;
+    Vec4f color;
+    Vec4f normal;
+    Vec2f texCoord;
 }Vertex;
 
 typedef struct
 {
-	int size;
-	int maxSize;
-	Vertex* data;
+    int size;
+    int maxSize;
+    Vertex* data;
 }VertexBuffer;
 
 typedef struct
 {
-	byte id;
-	byte metadata;
-	float light;
-	float skyLight;
+    byte id;
+    byte metadata;
+    float light;
+    float skyLight;
 }Block;
 
 typedef enum
 {
-	DRAW_NONE,
-	DRAW_BLOCK,
-	DRAW_CACTI,
-	DRAW_TREE,
-	DRAW_GRASS,
-	DRAW_RAIL,
-	DRAW_STAIRS,
+    DRAW_NONE,
+    DRAW_BLOCK,
+    DRAW_CACTI,
+    DRAW_TREE,
+    DRAW_GRASS,
+    DRAW_RAIL,
+    DRAW_STAIRS,
 }DrawMode;
 
 typedef enum
 {
-	COLOR_NONE,
-	COLOR_GRASS,
-	COLOR_WATER,
-	COLOR_WOOL,
+    COLOR_NONE,
+    COLOR_GRASS,
+    COLOR_WOOL,
 }ColorMode;
 
 typedef struct
 {
-	const char* name;
-	bool solid;
-	bool transparent;
-	DrawMode draw_mode;
-	ColorMode color_mode;
-	int textures[6];
+    const char* name;
+    bool solid;
+    bool transparent;
+    DrawMode draw_mode;
+    ColorMode color_mode;
+    int textures[6];
 }BlockDefinition;
 
 public BlockDefinition block_definition[256];
