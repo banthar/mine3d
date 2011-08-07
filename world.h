@@ -8,6 +8,7 @@
 #include "actor.h"
 #include "socket.h"
 #include "block.h"
+#include "player.h"
 
 #include <stdbool.h>
 #include <glew.h>
@@ -26,36 +27,36 @@ typedef struct World World;
 
 typedef struct
 {
-	Block data[SEGMENT_SIZE][SEGMENT_SIZE][SEGMENT_SIZE];
-	GLuint vbo;
-	int n;
-	bool rendered;
-	bool empty;
+    Block data[SEGMENT_SIZE][SEGMENT_SIZE][SEGMENT_SIZE];
+    GLuint vbo;
+    int n;
+    bool rendered;
+    bool empty;
 
 }Segment;
 
 struct World
 {
-	Segment* segment[VIEW_RANGE][VIEW_RANGE][VIEW_RANGE];
-	
-	uint64_t ticks;
+    Segment* segment[VIEW_RANGE][VIEW_RANGE][VIEW_RANGE];
 
-	uint64_t lastSyncTicks;
-	uint32_t lastSyncTime;
-	uint32_t drawStart;
+    uint64_t ticks;
 
-	Actor player;
-	
-	//Actor* actors[4096];
+    uint64_t lastSyncTicks;
+    uint32_t lastSyncTime;
+    uint32_t drawStart;
 
-	Vec4i scroll;
-	
-	GLuint terrain;
-	
-	Noise noise;
+    Player player;
 
-	FTGLfont *font;
-	
+    //Actor* actors[4096];
+
+    Vec4i scroll;
+
+    GLuint terrain;
+
+    Noise noise;
+
+    FTGLfont *font;
+
 };
 
 public void worldInit(World* this);

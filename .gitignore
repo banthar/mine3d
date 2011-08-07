@@ -1,3 +1,6 @@
 server
 client
 *.o
+data
+.geany
+.geanyprj

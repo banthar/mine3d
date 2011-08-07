@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+typedef uint8_t byte;
+
 #if DEBUG
 #include <std/error.h>
 #else

@@ -6,13 +6,13 @@
 
 typedef struct
 {
-	Vec4f pos;
-	Vec4f size;
-	Vec4f v;
-	Vec2f rot;
-	bool flying;
-	Vec4f headOffset;
-	double stance;
+    Vec4f pos;
+    Vec4f size;
+    Vec4f v;
+    Vec2f rot;
+    bool flying;
+    Vec4f headOffset;
+    double stance;
 }Actor;
 
 struct World;

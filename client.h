@@ -12,18 +12,20 @@ typedef struct Client Client;
 struct Client
 {
 
-	SDL_Surface* screen;
-	SDL_Rect window_rect;
-	SDL_Rect fullscreen_rect;
-	bool fullscreen;
-	bool grab_mouse;
+    uint64_t time;
 
-	bool stop;
+    SDL_Surface* screen;
+    SDL_Rect window_rect;
+    SDL_Rect fullscreen_rect;
+    bool fullscreen;
+    bool grab_mouse;
 
-	SDL_mutex* worldLock;
-	World world;
+    bool stop;
 
-	SDL_mutex* socketLock;
-	Socket socket;
+    SDL_mutex* worldLock;
+    World world;
+
+    SDL_mutex* socketLock;
+    Socket socket;
 
 };
