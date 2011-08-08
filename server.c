@@ -120,7 +120,7 @@ static void sendWorld(Socket* socket)
 
     uint16_t f(int x,int y, int z)
     {
-        return (z<63)?35:0;
+        return (z<63)?2:0;
     }
 
     int size=2;
@@ -197,19 +197,31 @@ static void readPlayerPositionAndLook(Socket* socket)
     /*bool on_ground=*/readBool(socket);
 }
 
+uint32_t lastPacket;
+
 static void readPlayerDigging(Socket* socket)
 {
-    readByte(socket);
-    readInt(socket);
-    readByte(socket);
-    readInt(socket);
-    readByte(socket);
+    int state=readByte(socket);
+    int x=readInt(socket);
+    int z=readByte(socket);
+    int y=readInt(socket);
+    int face=readByte(socket);
+
+    printf("dig: t:+%u s:%i x:%i y:%i z:%i f:%i\n",SDL_GetTicks()-lastPacket,state,x,y,z,face);
+
+    lastPacket=SDL_GetTicks();
+
 }
 
 static void readAnimation(Socket* socket)
 {
-    readInt(socket);
-    readByte(socket);
+    int eid=readInt(socket);
+    int animation=readByte(socket);
+
+    printf("ani: t:+%u %i %i\n",SDL_GetTicks()-lastPacket,eid,animation);
+
+    lastPacket=SDL_GetTicks();
+
 }
 
 PacketHandler* packetHandler[256]={

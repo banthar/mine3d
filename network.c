@@ -81,15 +81,32 @@ public void sendPlayerDigging(Client* client, byte status, Vec4i location_and_fa
 
 }
 
+public void sendAnimation(Client* client, int eid, byte animationId)
+{
+
+    SDL_LockMutex(client->socketLock);
+
+    writeByte(&client->socket,0x12);
+
+    writeInt(&client->socket,eid);
+    writeByte(&client->socket,animationId);
+
+    SDL_UnlockMutex(client->socketLock);
+
+}
+
 typedef void PacketHandler(Client* client);
 
 private void readLoginRequest(Client* client)
 {
     PACKET_DEBUG_START(0x00, "Login Request\n");
-    readInt(&client->socket);
+    int eid=readInt(&client->socket);
     readString16(&client->socket);
     readLong(&client->socket);
     readByte(&client->socket);
+
+    client->eid=eid;
+
 }
 
 private void readHandshake(Client* client)
@@ -436,12 +453,15 @@ private void readMultiBlockChange(Client* client)
 
 private void readBlockChange(Client* client)
 {
+
     PACKET_DEBUG_START(0x00, "Block Change\n");
     int x=readInt(&client->socket);
     int z=readByte(&client->socket);
     int y=readInt(&client->socket);
     byte id=readByte(&client->socket);
     byte metadata=readByte(&client->socket);
+
+    printf("block change %i (%i %i %i)\n",id,x,y,z);
 
     Block b=worldGet(&client->world,(Vec4i){x,y,z});
     b.id=id;

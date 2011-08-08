@@ -14,6 +14,8 @@ struct Client
 
     uint64_t time;
 
+    int eid;
+
     SDL_Surface* screen;
     SDL_Rect window_rect;
     SDL_Rect fullscreen_rect;

@@ -15,6 +15,7 @@ struct Player
     {
         bool on;
         uint64_t start;
+        uint64_t lastAnimation;
         Vec4i location;
     }digging;
 

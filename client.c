@@ -58,6 +58,7 @@ private bool startDigging(Client* client)
 
     if(p[3]==-1)
         return false;
+    p[3]=1;
 
     client->world.player.digging.on=true;
     client->world.player.digging.start=client->time;
@@ -84,7 +85,13 @@ private void tickDigging(Client* client)
 
     Vec4i location=client->world.player.digging.location;
 
-    if(client->time-client->world.player.digging.start>3000)
+    if(client->time-client->world.player.digging.lastAnimation>250)
+    {
+        sendAnimation(client,client->eid,1);
+        client->world.player.digging.lastAnimation=client->time;
+    }
+
+    if(client->time-client->world.player.digging.start>1100)
     {
 
         sendPlayerDigging(client,2,location);
@@ -92,6 +99,8 @@ private void tickDigging(Client* client)
         worldSet(&client->world,location,(Block){.id=0});
 
         client->world.player.digging.on=false;
+
+        startDigging(client);
 
     }
 

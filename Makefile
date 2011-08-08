@@ -25,10 +25,10 @@ server: actor.o player.o server.o utils.o noise.o world.o block.o network.o sock
 clean:
 	rm -f *.o
 
-run: client
+run: debug
 	./client
 
-gdb: client
+gdb: debug
 	gdb ./client --eval-command="run"
 
 data: $(HOME)/.minecraft/bin/minecraft.jar
