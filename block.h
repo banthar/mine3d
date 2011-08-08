@@ -24,8 +24,8 @@ typedef struct
 {
     byte id;
     byte metadata;
-    float light;
-    float skyLight;
+    byte light;
+    byte skyLight;
 }Block;
 
 typedef enum

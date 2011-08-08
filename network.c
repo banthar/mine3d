@@ -97,6 +97,11 @@ public void sendAnimation(Client* client, int eid, byte animationId)
 
 typedef void PacketHandler(Client* client);
 
+private void readKeepAlive(Client* client)
+{
+    PACKET_DEBUG_START(0x00, "Keep Alive\n");
+}
+
 private void readLoginRequest(Client* client)
 {
     PACKET_DEBUG_START(0x00, "Login Request\n");
@@ -351,12 +356,12 @@ private void readMapChunk(Client* client)
 
     PACKET_DEBUG_START(0x33,"Map Chunk");
 
-    int z0=readInt(&client->socket);
-    int y0=readShort(&client->socket);
     int x0=readInt(&client->socket);
+    int z0=readShort(&client->socket);
+    int y0=readInt(&client->socket);
+    int size_x=readByte(&client->socket)+1;
     int size_z=readByte(&client->socket)+1;
     int size_y=readByte(&client->socket)+1;
-    int size_x=readByte(&client->socket)+1;
 
     size_t compressed_size=readInt(&client->socket);
     byte compressed[compressed_size];
@@ -384,27 +389,27 @@ private void readMapChunk(Client* client)
     byte* light=metadata+size/2;
     byte* skyLight=light+size/2;
 
+    assert((skyLight+size/2-uncompressed)==uncompressed_size);
 
-
-    for(int z=0;z<size_z;z++)
     for(int x=0;x<size_x;x++)
     for(int y=0;y<size_y;y++)
+    for(int z=0;z<size_z;z++)
     {
 
-        int pos=y+size_y*(x+size_x*z);
+        int pos=z+size_z*(y+size_y*x);
 
         Block block={
             .id=ids[pos],
             .metadata=getNibble(metadata,pos),
-            .light=getNibble(light,pos)/(float)0xf,
-            .skyLight=getNibble(skyLight,pos)/(float)0xf,
+            .light=getNibble(light,pos),
+            .skyLight=getNibble(skyLight,pos),
         };
 
-        worldSet(&client->world, (Vec4i){z0+z,x0+x,y0+y}, block);
+        assert(block.skyLight==0 || block.skyLight==15);
 
+        worldSet(&client->world, (Vec4i){x0+x,y0+y,z0+z}, block);
 
     }
-
 
     SDL_UnlockMutex(client->worldLock);
 
@@ -569,6 +574,9 @@ private void readKick(Client* client)
 }
 
 static PacketHandler* packetHandlers[]={
+
+    [0x00] = readKeepAlive,
+
     [0x03] = readChatMessage,
     [0x04] = readTimeUpdate,
     [0x05] = readEntityEquipment,

@@ -37,7 +37,7 @@ public Block worldGet(World* this, Vec4i pos)
     Segment* segment=this->segment[global[2]][global[1]][global[0]];
 
     if(segment==NULL)
-        return (Block){.skyLight=1.0};
+        return (Block){};
 
     Vec4i local=pos&segment_mask;
 

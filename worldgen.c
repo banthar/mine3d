@@ -37,18 +37,18 @@ public void generateSegment(World* world, Segment* segment, Vec4i pos)
 
         Vec2f xy=(Vec2f){x+pos[0]*SEGMENT_SIZE,y+pos[1]*SEGMENT_SIZE};
 
-        float stoneHeight=64;
-        stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.001,0.001})*75;
+        float stoneHeight=40;
+        stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.001,0.001})*90;
         stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.01,0.01})*50;
         stoneHeight+=noise2(&world->noise,xy*(Vec2f){0.1,0.1})*5;
 
         if(stoneHeight<0)
             stoneHeight=-sqrt(-stoneHeight)*1.5;
 
-        float dirtHeight=64+noise2(&world->noise,xy*(Vec2f){0.01,0.01})*10-1;
+        float dirtHeight=40+noise2(&world->noise,xy*(Vec2f){0.01,0.01})*10-1;
         dirtHeight+=noise2(&world->noise,xy*(Vec2f){0.1,0.1});
 
-        float snowHeight=64+noise2(&world->noise,xy*(Vec2f){0.01,0.01})*10+35;
+        float snowHeight=40+noise2(&world->noise,xy*(Vec2f){0.01,0.01})*10+35;
         snowHeight+=noise2(&world->noise,xy*(Vec2f){0.1,0.1})*5;
 
 
@@ -67,7 +67,7 @@ public void generateSegment(World* world, Segment* segment, Vec4i pos)
             }
             else if(stoneHeight>xyz[2]-(xyz[2]-snowHeight)/8 && snowHeight<xyz[2])
             {
-                segment->data[z][y][x].id=78;
+                segment->data[z][y][x].id=80;
             }
             else if(dirtHeight>xyz[2])
             {
@@ -80,6 +80,10 @@ public void generateSegment(World* world, Segment* segment, Vec4i pos)
 
             if(segment->data[z][y][x].id!=0)
                 segment->empty=false;
+
+            segment->data[z][y][x].light=0;
+            segment->data[z][y][x].skyLight=segment->data[z][y][x].id==0?15:0;
+
 
         }
 

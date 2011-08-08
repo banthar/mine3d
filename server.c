@@ -70,6 +70,7 @@ private void sendPreChunk(Socket* socket, int x, int y, bool mode)
 
 static void setNibble(byte* ptr, int n, byte val)
 {
+    ptr[n/2]&=n&1?0x0f:0xf0;
     ptr[n/2]|=n&1?val<<4:val;
 }
 
@@ -98,10 +99,6 @@ private void sendMapChunk(Client* client, Vec4i pos, Vec4i size)
 
     assert((skyLight+area/2-uncompressed)==uncompressed_size);
 
-    memset(metadata,0x0,area/2);
-    memset(light,0x0,area/2);
-    memset(skyLight,0xff,area/2);
-
     for(int x=0;x<size[0];x++)
     for(int y=0;y<size[1];y++)
     for(int z=0;z<size[2];z++)
@@ -110,7 +107,9 @@ private void sendMapChunk(Client* client, Vec4i pos, Vec4i size)
         assert(ids+i<metadata);
         Block b=worldGet(client->world,pos+(Vec4i){x,y,z});
 
-        setNibble(metadata,i,b.metadata>>8);
+        setNibble(metadata,i,b.metadata);
+        setNibble(light,i,b.light);
+        setNibble(skyLight,i,b.skyLight);
         ids[i]=b.id;
     }
 
@@ -246,6 +245,24 @@ PacketHandler* packetHandler[256]={
     [0x12] = readAnimation,
 };
 
+static int clientPingThread(void* data)
+{
+    Client* client=(Client*)data;
+
+    while(client->state==1)
+    {
+        SDL_LockMutex(client->mutex);
+        writeByte(&client->socket,0x00);
+        SDL_UnlockMutex(client->mutex);
+
+        SDL_Delay(1000);
+
+    }
+
+    return 0;
+
+}
+
 static int clientThread(void* data)
 {
 
@@ -278,6 +295,9 @@ static int clientThread(void* data)
         sendPlayerPositionAndLook(&client->socket);
         sendWorld(client);
         socketFlush(&client->socket);
+
+        SDL_CreateThread(clientPingThread,client);
+
 
         while(true)
         {

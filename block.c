@@ -184,8 +184,9 @@ void blockDrawCube(World* world, Vec4i loc, VertexBuffer* buffer, Vec4f baseColo
                 sky_light+=b.skyLight;
             }
 
-            light/=4.0;
-            sky_light/=4.0;
+            light/=15.0*4.0;
+            sky_light/=15.0*4.0;
+
 
             float l=clampf(light+sky_light,0.1,1.0);
             //l=l>0.75;
