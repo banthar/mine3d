@@ -216,8 +216,11 @@ public void readStream(Socket* socket)
 
 }
 
-public void writeString16(Socket* socket, char* utf8_string)
+public void writeString16(Socket* socket, const char* string)
 {
+
+    char* utf8_string=strdupa(string);
+
     int length=strlen(utf8_string);
 
     uint16_t ucs_string[length];

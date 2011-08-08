@@ -223,12 +223,6 @@ PacketHandler* packetHandler[256]={
     [0x12] = readAnimation,
 };
 
-typedef enum
-{
-    FREE,
-
-}ClientState;
-
 typedef struct
 {
     int state;
@@ -260,11 +254,11 @@ static int clientThread(void* data)
     if(!setjmp(env))
     {
 
-        assert(readByte(&client->socket)==0x02);
+        readByte(&client->socket)==0x02 or panic("expected handshake");
         readHandshake(&client->socket);
         sendHandshake(&client->socket);
         socketFlush(&client->socket);
-        assert(readByte(&client->socket)==0x01);
+        readByte(&client->socket)==0x01 or panic("expected login request");
         readLoginRequest(&client->socket);
         sendLoginRequest(&client->socket);
         sendPlayerPositionAndLook(&client->socket);

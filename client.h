@@ -28,4 +28,6 @@ struct Client
     SDL_mutex* socketLock;
     Socket socket;
 
+    const char* playerName;
+
 };

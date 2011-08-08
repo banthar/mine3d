@@ -1,8 +1,9 @@
 
 #pragma once
 
+#include "config.h"
+
 #include <stdbool.h>
-#include <std/types.h>
 
 typedef struct
 {
@@ -28,7 +29,7 @@ public void writeDouble(Socket* socket, double h);
 public void writeBool(Socket* socket, bool n);
 public char* readString16(Socket* socket);
 public void readStream(Socket* socket);
-public void writeString16(Socket* socket, char* utf8_string);
+public void writeString16(Socket* socket, const char* utf8_string);
 public void socketFlush(Socket* socket);
 public void socketWrite(Socket* socket, void* data, size_t length);
 public void socketRead(Socket* socket, void* data, size_t length);

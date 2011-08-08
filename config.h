@@ -7,6 +7,8 @@ typedef uint8_t byte;
 
 #define lengthof(x) (sizeof(x)/sizeof(*(x)))
 
+#define or ?true:
+
 #if DEBUG
 #include <std/error.h>
 #else

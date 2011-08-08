@@ -10,15 +10,12 @@
 
 #include <math.h>
 #include "SDL.h"
-#include "SDL_net.h"
 #include <iconv.h>
 #include <zlib.h>
 
-#define or ?:
+#define or ?true:
 
 #define PACKET_DEBUG_START(id,name) {}
-
-static char* playerName="banthar1";
 
 static int stage=0;
 
@@ -29,7 +26,7 @@ private void sendLoginRequest(Client* client)
 
     writeByte(&client->socket,0x01);
     writeInt(&client->socket,14);
-    writeString16(&client->socket,playerName);
+    writeString16(&client->socket,client->playerName);
     writeLong(&client->socket,0llu);
     writeByte(&client->socket,0);
 
@@ -43,7 +40,7 @@ private void sendHandShake(Client* client)
     SDL_LockMutex(client->socketLock);
 
     writeByte(&client->socket,0x02);
-    writeString16(&client->socket,playerName);
+    writeString16(&client->socket,client->playerName);
 
     SDL_UnlockMutex(client->socketLock);
 
@@ -97,7 +94,7 @@ private void readLoginRequest(Client* client)
 
 private void readHandshake(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Handshake\n");
+    PACKET_DEBUG_START(0x02, "Handshake\n");
     readString16(&client->socket);
 }
 
@@ -627,12 +624,13 @@ public int networkMain(void* data)
     sendHandShake(client);
     socketFlush(&client->socket);
 
-    assert(readByte(&client->socket)==0x02);
+    readByte(&client->socket)==0x02 or panic("expected handshake packet");
     readHandshake(client);
+
     sendLoginRequest(client);
     socketFlush(&client->socket);
 
-    assert(readByte(&client->socket)==0x01);
+    readByte(&client->socket)==0x01 or panic("expected login request packet");
     readLoginRequest(client);
 
     SDL_Thread* thread=NULL;

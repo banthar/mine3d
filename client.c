@@ -4,6 +4,7 @@
 #include "client.h"
 
 #include "world.h"
+#include "worldgfx.h"
 #include "utils.h"
 #include "network.h"
 
@@ -197,6 +198,7 @@ export int main(int argc, char* argv[])
         .window_rect=(SDL_Rect){0,0,720,480},
         .worldLock=SDL_CreateMutex(),
         .socketLock=SDL_CreateMutex(),
+        .playerName="Player56",
     };
 
     const SDL_VideoInfo* video_info=SDL_GetVideoInfo();
