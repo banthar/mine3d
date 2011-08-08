@@ -14,8 +14,6 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-private Segment* newSegment();
-
 public Block segmentGet(Segment* this, int x, int y, int z)
 {
     if(x<0 || y<0 || z<0 || x>=SEGMENT_SIZE || y>=SEGMENT_SIZE || z>=SEGMENT_SIZE)
@@ -159,7 +157,7 @@ public Vec4i worldRay(World* world, Vec4f pos0, Vec4f normal, int max_length)
 
 static int allocated_segments=0;
 
-private Segment* newSegment()
+public Segment* newSegment()
 {
     allocated_segments++;
     return calloc(1,sizeof(Segment));
@@ -344,6 +342,8 @@ public void worldInit(World *this)
     *this=(World){};
 
     this->player=(Player){.size={0.3,0.3,0.9},.headOffset={0.0,0.0,0.89}};
+
+    this->scroll=(Vec4i){-VIEW_RANGE/2,-VIEW_RANGE/2,0};
 
     noiseInit(&this->noise,666);
 

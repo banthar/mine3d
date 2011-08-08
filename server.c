@@ -4,6 +4,8 @@
 #include "socket.h"
 
 #include "math.h"
+#include "world.h"
+#include "worldgen.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -16,6 +18,16 @@
 #include <zlib.h>
 #include <setjmp.h>
 #include "SDL.h"
+
+typedef struct
+{
+    int state;
+    Socket socket;
+    SDL_mutex* mutex;
+    SDL_Thread* thread;
+    World* world;
+    int eid;
+}Client;
 
 static void sendLoginRequest(Socket* socket)
 {
@@ -35,7 +47,7 @@ static void sendHandshake(Socket* socket)
 private void sendPlayerPositionAndLook(Socket* socket)
 {
 
-    float z=64;
+    float z=90;
 
     writeByte(socket,0x0d);
     writeDouble(socket,0);
@@ -61,18 +73,18 @@ static void setNibble(byte* ptr, int n, byte val)
     ptr[n/2]|=n&1?val<<4:val;
 }
 
-private void sendMapChunk(Socket* socket, Vec4i pos, Vec4i size, uint16_t f(int,int,int))
+private void sendMapChunk(Client* client, Vec4i pos, Vec4i size)
 {
 
-    writeByte(socket,0x33);
+    writeByte(&client->socket,0x33);
 
-    writeInt(socket,pos[0]);
-    writeShort(socket,pos[2]);
-    writeInt(socket,pos[1]);
+    writeInt(&client->socket,pos[0]);
+    writeShort(&client->socket,pos[2]);
+    writeInt(&client->socket,pos[1]);
 
-    writeByte(socket,size[0]-1);
-    writeByte(socket,size[2]-1);
-    writeByte(socket,size[1]-1);
+    writeByte(&client->socket,size[0]-1);
+    writeByte(&client->socket,size[2]-1);
+    writeByte(&client->socket,size[1]-1);
 
     int area=size[0]*size[1]*size[2];
 
@@ -94,11 +106,12 @@ private void sendMapChunk(Socket* socket, Vec4i pos, Vec4i size, uint16_t f(int,
     for(int y=0;y<size[1];y++)
     for(int z=0;z<size[2];z++)
     {
-        int pos=z+size[2]*(x+size[1]*y);
-        assert(ids+pos<metadata);
-        uint16_t b=f(x,y,z);
-        setNibble(metadata,pos,b>>8);
-        ids[pos]=b&0xff;
+        int i=z+size[2]*(y+size[1]*x);
+        assert(ids+i<metadata);
+        Block b=worldGet(client->world,pos+(Vec4i){x,y,z});
+
+        setNibble(metadata,i,b.metadata>>8);
+        ids[i]=b.id;
     }
 
 
@@ -110,27 +123,25 @@ private void sendMapChunk(Socket* socket, Vec4i pos, Vec4i size, uint16_t f(int,
         panic("uncompress error");
     }
 
-    writeInt(socket,compressed_size);
-    socketWrite(socket,compressed,compressed_size);
+    writeInt(&client->socket,compressed_size);
+    socketWrite(&client->socket,compressed,compressed_size);
 
 }
 
-static void sendWorld(Socket* socket)
+static void sendWorld(Client* client)
 {
 
-    uint16_t f(int x,int y, int z)
-    {
-        return (z<63)?2:0;
-    }
-
-    int size=2;
+    int size=8;
 
     for(int x=-size;x<size;x++)
     for(int y=-size;y<size;y++)
     {
 
-        sendPreChunk(socket,x,y,true);
-        sendMapChunk(socket, (Vec4i){x*16,y*16,0}, (Vec4i){16,16,128},&f);
+        for(int z=0;z<8;z++)
+            prepareSegment(client->world,(Vec4i){x,y,z});
+
+        sendPreChunk(&client->socket,x,y,true);
+        sendMapChunk(client, (Vec4i){x*16,y*16,0}, (Vec4i){16,16,128});
 
     }
 
@@ -235,15 +246,6 @@ PacketHandler* packetHandler[256]={
     [0x12] = readAnimation,
 };
 
-typedef struct
-{
-    int state;
-    Socket socket;
-    SDL_mutex* mutex;
-    SDL_Thread* thread;
-    int eid;
-}Client;
-
 static int clientThread(void* data)
 {
 
@@ -274,7 +276,7 @@ static int clientThread(void* data)
         readLoginRequest(&client->socket);
         sendLoginRequest(&client->socket);
         sendPlayerPositionAndLook(&client->socket);
-        sendWorld(&client->socket);
+        sendWorld(client);
         socketFlush(&client->socket);
 
         while(true)
@@ -351,6 +353,9 @@ int main(int argc, char* argv[])
 
     assert(socket>=0);
 
+    World world;
+    worldInit(&world);
+
     Client client[16]={};
 
     while(true)
@@ -379,6 +384,7 @@ int main(int argc, char* argv[])
         if(firstFree>=0)
         {
             client[firstFree].state=1;
+            client[firstFree].world=&world;
             client[firstFree].socket.fd=fd;
             client[firstFree].thread=SDL_CreateThread(clientThread,&client[firstFree]);
         }

@@ -69,5 +69,6 @@ public bool worldEvent(World* this, const SDL_Event* event);
 public void worldSet(World* this, Vec4i pos, Block block);
 public Block worldGet(World* this, Vec4i pos);
 public void worldSpiral(World* this, void (f)(World*,int x,int y,int z));
+public Segment* newSegment();
 
 
