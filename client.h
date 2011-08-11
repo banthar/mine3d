@@ -32,4 +32,6 @@ struct Client
 
     const char* playerName;
 
+    int zombieTexture;
+
 };

@@ -405,8 +405,6 @@ private void readMapChunk(Client* client)
             .skyLight=getNibble(skyLight,pos),
         };
 
-        assert(block.skyLight==0 || block.skyLight==15);
-
         worldSet(&client->world, (Vec4i){x0+x,y0+y,z0+z}, block);
 
     }

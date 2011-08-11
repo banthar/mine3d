@@ -62,7 +62,7 @@ private void drawSegment(World* world, Segment* this, Vec4i pos)
 }
 
 
-private void drawSelection(World* world, Vec4i pos)
+public void worldDrawSelection(World* world, Vec4i pos)
 {
     static const Vec4i face[6][4]={
         {{0,0,0},{0,1,0},{0,1,1},{0,0,1}},
@@ -110,49 +110,6 @@ private void worldDrawSegment(World *this,int x, int y, int z)
 public void worldDraw(World *world)
 {
 
-    world->drawStart=SDL_GetTicks();
-
-    char buf[1024];
-    sprintf(buf,"x:%f y:%f z:%f (%f %f)",world->player.pos[0],world->player.pos[1],world->player.pos[2],world->player.rot[0],world->player.rot[1]);
-    //ftglRenderFont(world->font, buf, FTGL_RENDER_ALL);
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-
-    //glTranslated(0,0,-3);
-
-
-    glRotatef(world->player.rot[1]*180/M_PI,1,0,0);
-    glRotatef(world->player.rot[0]*180/M_PI,0,0,1);
-
-    glTranslatev(-world->player.pos-world->player.headOffset);
-
-    glColor3f(1.0,1.0,1.0);
-    glBegin(GL_LINES);
-    int n=16;
-    for(int i=-n;i<n;i++)
-    {
-        glVertex3f(-16*n,i*16,0);
-        glVertex3f(16*n,i*16,0);
-        glVertex3f(i*16,-16*n,0);
-        glVertex3f(i*16,16*n,0);
-    }
-    glEnd();
-
-    //actorDrawBBox(&world->player);
-
-    worldTick(world);
-
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_ALPHA_TEST);
-    glEnable(GL_TEXTURE_2D);
-    glAlphaFunc(GL_GREATER,0.1);
-
-    //float daytime=(world->ticks%24000ull)/24000.0;
-
-    glMatrixMode(GL_MODELVIEW);
-
     glBindTexture(GL_TEXTURE_2D, world->terrain);
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
@@ -164,15 +121,6 @@ public void worldDraw(World *world)
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
-
-    Vec4i p=worldRay(world, world->player.pos+world->player.headOffset,  rotationNormal(world->player.rot),3);
-
-    if(p[3]!=-1)
-        drawSelection(world,p);
-
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
 
 }
 

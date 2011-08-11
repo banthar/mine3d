@@ -5,6 +5,7 @@
 
 #include "actor.h"
 
+typedef struct Client Client;
 typedef struct Player Player;
 
 struct Player
@@ -21,3 +22,5 @@ struct Player
 
 };
 
+void modelDraw(Client* client);
+//void playerTick(Client* client, Player* player);

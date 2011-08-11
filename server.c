@@ -19,7 +19,9 @@
 #include <setjmp.h>
 #include "SDL.h"
 
-typedef struct
+typedef struct Client Client;
+
+struct Client
 {
     int state;
     Socket socket;
@@ -27,7 +29,7 @@ typedef struct
     SDL_Thread* thread;
     World* world;
     int eid;
-}Client;
+};
 
 static void sendLoginRequest(Socket* socket)
 {

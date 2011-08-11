@@ -195,6 +195,68 @@ private bool handleEvent(Client* client, const SDL_Event* event)
     }
 }
 
+private void clientDraw(Client* client)
+{
+
+    World* world=&client->world;
+
+    world->drawStart=SDL_GetTicks();
+
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+
+    //glTranslated(0,0,-3);
+
+
+    glRotatef(world->player.rot[1]*180/M_PI,1,0,0);
+    glRotatef(world->player.rot[0]*180/M_PI,0,0,1);
+
+    glTranslatev(-world->player.pos-world->player.headOffset);
+
+    glColor3f(1.0,1.0,1.0);
+    glBegin(GL_LINES);
+    int n=16;
+    for(int i=-n;i<n;i++)
+    {
+        glVertex3f(-16*n,i*16,0);
+        glVertex3f(16*n,i*16,0);
+        glVertex3f(i*16,-16*n,0);
+        glVertex3f(i*16,16*n,0);
+    }
+    glEnd();
+
+    //actorDrawBBox(&world->player);
+
+    worldTick(world);
+
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_ALPHA_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glAlphaFunc(GL_GREATER,0.1);
+
+    //float daytime=(world->ticks%24000ull)/24000.0;
+
+    glMatrixMode(GL_MODELVIEW);
+
+    glPushMatrix();
+    glTranslatev((Vec4f){0,0,90});
+    modelDraw(client);
+    glPopMatrix();
+
+    worldDraw(&client->world);
+
+    Vec4i p=worldRay(world, world->player.pos+world->player.headOffset,  rotationNormal(world->player.rot),3);
+
+    if(p[3]!=-1)
+        worldDrawSelection(world,p);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+}
+
 export int main(int argc, char* argv[])
 {
 
@@ -221,6 +283,8 @@ export int main(int argc, char* argv[])
     //GLint screen_texture=emptyTexture(1,1);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+    client.zombieTexture=loadTexture("data/mob/char.png");
 
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -252,7 +316,7 @@ export int main(int argc, char* argv[])
 
         tickDigging(&client);
 
-        worldDraw(&client.world);
+        clientDraw(&client);
 
         SDL_UnlockMutex(client.worldLock);
 
