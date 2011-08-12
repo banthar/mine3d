@@ -16,9 +16,11 @@ debug: client server
 
 release: clean client server
 
-client: actor.o player.o client.o utils.o world.o block.o network.o socket.o noise.o worldgfx.o
+client: actor.o player.o client.o utils.o world.o block.o network.o socket.o noise.o worldgfx.o model.o
 
-server: actor.o player.o server.o utils.o noise.o world.o block.o network.o socket.o worldgen.o
+server: actor.o player.o server.o utils.o noise.o world.o block.o network.o socket.o worldgen.o model.o
+
+model_view: model_view.o model.o utils.o
 
 *.o: Makefile *.h
 
