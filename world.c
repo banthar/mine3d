@@ -244,7 +244,7 @@ public void worldScroll(World* world, Vec4f pos)
 
 }
 
-public void worldTick(World* this)
+public void worldTick(World* this,float timeDelta)
 {
 
     this->ticks=this->lastSyncTicks+(SDL_GetTicks()-this->lastSyncTime)*20/1000;
@@ -257,7 +257,7 @@ public void worldTick(World* this)
 
         if(actor!=NULL)
         {
-            actorTick(this,actor);
+            actorTick(this,actor,timeDelta);
         }
 
     }

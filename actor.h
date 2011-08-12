@@ -26,6 +26,12 @@ typedef struct
 typedef struct
 {
     Actor;
+    byte type;
+}Vehicle;
+
+typedef struct
+{
+    Actor;
     uint16_t item;
     byte count;
     uint16_t data;
@@ -34,9 +40,10 @@ typedef struct
 struct World;
 typedef struct World World;
 
-public void actorTick(World* world, Actor* actor);
+public void actorTick(World* world, Actor* actor, float timeDelta);
 public void actorDrawBBox(Actor* actor);
 public Pickup* pickupNew();
 public Mob* mobNew();
+public Vehicle* vehicleNew();
 void humanDraw(Actor* actor);
 

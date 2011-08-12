@@ -54,7 +54,7 @@ public Player* playerNew()
         .actorType=777,
         .size={0.3,0.3,0.9},
         .headOffset={0.0,0.0,0.89},
-        .draw=false,
+        .draw=true,
     };
 
     return player;

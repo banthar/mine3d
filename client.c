@@ -150,7 +150,7 @@ public bool clientEvent(Client* client, const SDL_Event* event)
                     client->player->flying=!client->player->flying;
                     return true;
                 case SDLK_SPACE:
-                    client->player->v[2]=0.31;
+                    client->player->v[2]=6.5;
                     return true;
                 default:
                     return false;
@@ -172,7 +172,7 @@ private void playerTick(Player* player)
     Uint8 *keys = SDL_GetKeyState(NULL);
 
     double vx=0,vy=0;
-    double v=0.15;
+    double v=4.27;
 
     if(keys[SDLK_w] || keys[SDLK_UP])
     {
@@ -205,9 +205,9 @@ private void playerTick(Player* player)
     else
     {
 
-        player->v[0]=sin(player->rot[0]/180.0*M_PI)*sin(player->rot[1]/180.0*M_PI)*vy*v-cos(player->rot[0]/180.0*M_PI)*vx*v;
-        player->v[1]=-cos(player->rot[0]/180.0*M_PI)*sin(player->rot[1]/180.0*M_PI)*vy*v-sin(player->rot[0]/180.0*M_PI)*vx*v;
-        player->v[2]=cos(player->rot[1]/180.0*M_PI)*vy*v;
+        player->v[0]=-sin(player->rot[0]/180.0*M_PI)*sin(player->rot[1]/180.0*M_PI)*vy*v-cos(player->rot[0]/180.0*M_PI)*vx*v;
+        player->v[1]=cos(player->rot[0]/180.0*M_PI)*sin(player->rot[1]/180.0*M_PI)*vy*v-sin(player->rot[0]/180.0*M_PI)*vx*v;
+        player->v[2]=-cos(player->rot[1]/180.0*M_PI)*vy*v;
 
         //actorTick(world,player);
 
@@ -279,6 +279,8 @@ private void clientDraw(Client* client)
 
     World* world=&client->world;
 
+    float timeDelta=(SDL_GetTicks()-world->drawStart)/1000.0;
+
     world->drawStart=SDL_GetTicks();
 
 
@@ -307,7 +309,7 @@ private void clientDraw(Client* client)
 
     //actorDrawBBox(&world->player);
 
-    worldTick(world);
+    worldTick(world,timeDelta);
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
@@ -344,6 +346,8 @@ export int main(int argc, char* argv[])
         .playerName="Player56",
         .player=playerNew(),
     };
+
+    client.player->draw=false;
 
     const SDL_VideoInfo* video_info=SDL_GetVideoInfo();
     client.fullscreen_rect=(SDL_Rect){0,0,video_info->current_w,video_info->current_h};

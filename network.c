@@ -129,6 +129,9 @@ private Vec4f readVelocity(Socket* socket)
     v[0]=((int16_t)readShort(socket))*32000.0/200.0;
     v[1]=((int16_t)readShort(socket))*32000.0/200.0;
     v[2]=((int16_t)readShort(socket))*32000.0/200.0;
+
+    printf("v:(%f %f %f)\n",v[0],v[1],v[2]);
+
     return v;
 }
 
@@ -259,7 +262,7 @@ private void readNamedEntitySpawn(Client* client)
 {
     PACKET_DEBUG_START(0x14, "Named Entity Spawn\n");
 
-    Player* player=calloc(sizeof(Player),1);
+    Player* player=playerNew();
 
     int eid=readInt(&client->socket);
     player->name=readString16(&client->socket);
@@ -303,12 +306,15 @@ private void readCollectItem(Client* client)
 
 private void readAddObject(Client* client)
 {
+
     PACKET_DEBUG_START(0x17,"Add Object/Vehicle");
-    readInt(&client->socket);
-    readByte(&client->socket);
-    readInt(&client->socket);
-    readInt(&client->socket);
-    readInt(&client->socket);
+
+    Vehicle* vehicle=vehicleNew();
+
+    int eid=readInt(&client->socket);
+    vehicle->type=readByte(&client->socket);
+    vehicle->pos=readPositionInt(&client->socket);
+
     int flag=readInt(&client->socket);
     if(flag)
     {
@@ -317,7 +323,9 @@ private void readAddObject(Client* client)
         readShort(&client->socket);
     }
 
-    puts("Add Object/Vehicle");
+    SDL_LockMutex(client->worldLock);
+    worldAddActor(&client->world,eid,vehicle);
+    SDL_UnlockMutex(client->worldLock);
 
 }
 
@@ -326,7 +334,7 @@ private void readMobSpawn(Client* client)
 
     PACKET_DEBUG_START(0x18, "Mob Spawn\n");
 
-    Mob* mob=calloc(sizeof(Mob),1);
+    Mob* mob=mobNew();
 
     int eid=readInt(&client->socket);
     mob->type=readByte(&client->socket);
@@ -342,7 +350,11 @@ private void readMobSpawn(Client* client)
 
 private void readEntityVelocity(Client* client)
 {
+
     PACKET_DEBUG_START(0x1c, "Entity Velocity?\n");
+
+    puts("Entity Velocity");
+
     int eid=readInt(&client->socket);
 
     Vec4f v=readVelocity(&client->socket);

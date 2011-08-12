@@ -57,7 +57,7 @@ private bool actorCollision(World* world, const Actor* actor)
 
 }
 
-public void actorTick(World* world, Actor* actor)
+public void actorTick(World* world, Actor* actor, float timeDelta)
 {
 
     for(int d=0;d<3;d++)
@@ -65,7 +65,7 @@ public void actorTick(World* world, Actor* actor)
 
         float grid=actor->size[d];
         //float pos0=actor->pos[d];
-        float pos1=actor->pos[d]+actor->v[d];
+        float pos1=actor->pos[d]+actor->v[d]*timeDelta;
         float s=sign(actor->v[d]);
         while(actor->pos[d]*s<pos1*s)
         {
@@ -92,7 +92,7 @@ public void actorTick(World* world, Actor* actor)
 
     }
 
-    actor->v[2]-=0.04;
+    actor->v[2]-=0.6;
 
 }
 
@@ -101,8 +101,19 @@ public Pickup* pickupNew()
     return calloc(sizeof(Pickup),1);
 }
 
+
+public Vehicle* vehicleNew()
+{
+    return calloc(sizeof(Vehicle),1);
+}
+
 public Mob* mobNew()
 {
-    return calloc(sizeof(Mob),1);
+    Mob* mob=calloc(sizeof(Mob),1);
+
+    mob->draw=true;
+
+    return mob;
+
 }
 
