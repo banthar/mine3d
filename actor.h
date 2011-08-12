@@ -15,8 +15,25 @@ typedef struct
     double stance;
 }Actor;
 
+typedef struct
+{
+    Actor;
+    byte type;
+}Mob;
+
+typedef struct
+{
+    Actor;
+    uint16_t item;
+    byte count;
+    uint16_t data;
+}Pickup;
+
 struct World;
 typedef struct World World;
 
 public void actorTick(World* world, Actor* actor);
 public void actorDrawBBox(Actor* actor);
+public Pickup* pickupNew();
+public Mob* mobNew();
+

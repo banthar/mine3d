@@ -361,3 +361,43 @@ public void worldDestroy(World* this)
 
 }
 
+public void worldAddActor(World* world, uint eid, Actor* actor)
+{
+
+    assert(world!=NULL && actor!=NULL && eid>0);
+
+    actor->size=(Vec4f){1,1,1};
+
+    if(world->actor == NULL)
+    {
+        world->actor=calloc(sizeof(Actor*),1024*4);
+        world->maxActors=1024*4;
+    }
+
+    assert(eid<world->maxActors);
+    assert(world->actor[eid]==NULL);
+
+    world->actor[eid]=actor;
+
+}
+
+public Actor* worldRemoveActor(World* world, uint eid)
+{
+    if(world->actor == NULL || eid>world->maxActors)
+        panic("unable to remove actor %i\n",eid);
+
+    Actor* actor=world->actor[eid];
+
+    world->actor[eid]=NULL;
+
+    return actor;
+
+}
+
+public Actor* worldGetActor(World* world, uint eid)
+{
+    if(world->actor == NULL || eid>world->maxActors)
+        return NULL;
+
+    return world->actor[eid];
+}

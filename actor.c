@@ -26,6 +26,8 @@ public void actorDrawBBox(Actor* actor)
         {{1,1,-1},{1,1,1}},
     };
 
+    glDisable(GL_DEPTH_TEST);
+
     glBegin(GL_LINES);
     for(int i=0;i<12;i++)
     {
@@ -93,3 +95,14 @@ public void actorTick(World* world, Actor* actor)
     actor->v[2]-=0.04;
 
 }
+
+public Pickup* pickupNew()
+{
+    return calloc(sizeof(Pickup),1);
+}
+
+public Mob* mobNew()
+{
+    return calloc(sizeof(Mob),1);
+}
+

@@ -20,7 +20,11 @@ struct Player
         Vec4i location;
     }digging;
 
+    char* name;
+    int currentItem;
+
 };
 
+public Player* playerNew();
 void modelDraw(Client* client);
 //void playerTick(Client* client, Player* player);

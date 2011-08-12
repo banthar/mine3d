@@ -47,7 +47,8 @@ struct World
 
     Player player;
 
-    //Actor* actors[4096];
+    int maxActors;
+    Actor** actor;
 
     Vec4i scroll;
 
@@ -71,4 +72,6 @@ public Block worldGet(World* this, Vec4i pos);
 public void worldSpiral(World* this, void (f)(World*,int x,int y,int z));
 public Segment* newSegment();
 
-
+public void worldAddActor(World* world, uint eid, Actor* actor);
+public Actor* worldRemoveActor(World* world, uint eid);
+public Actor* worldGetActor(World* world, uint eid);

@@ -122,6 +122,18 @@ public void worldDraw(World *world)
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
+
+    for(int i=0;i<world->maxActors;i++)
+    {
+        Actor* actor=worldGetActor(world,i);
+
+        if(actor!=NULL)
+        {
+            actorDrawBBox(actor);
+        }
+
+    }
+
 }
 
 public void worldDisplayInit(World *this)

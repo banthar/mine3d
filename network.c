@@ -95,16 +95,46 @@ public void sendAnimation(Client* client, int eid, byte animationId)
 
 }
 
+// Read Helpers
+
+private Vec4f readPositionDelta(Socket* socket)
+{
+    Vec4f delta;
+    delta[0]=((int8_t)readByte(socket))/32.0;
+    delta[2]=((int8_t)readByte(socket))/32.0;
+    delta[1]=((int8_t)readByte(socket))/32.0;
+    return delta;
+}
+
+private Vec4f readPositionInt(Socket* socket)
+{
+    Vec4f pos;
+    pos[0]=((int32_t)readInt(socket))/32.0;
+    pos[2]=((int32_t)readInt(socket))/32.0;
+    pos[1]=((int32_t)readInt(socket))/32.0;
+    return pos;
+}
+
+private Vec2f readRotationBytes(Socket* socket)
+{
+    Vec2f rot;
+    rot[0]=readByte(socket)/255.0;
+    rot[1]=readByte(socket)/255.0;
+    return rot;
+}
+
+// Read Handlers
+
 typedef void PacketHandler(Client* client);
 
 private void readKeepAlive(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Keep Alive\n");
+    PACKET_DEBUG_START(0x00, "Keep Alive");
 }
 
 private void readLoginRequest(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Login Request\n");
+    PACKET_DEBUG_START(0x01, "Login Request");
     int eid=readInt(&client->socket);
     readString16(&client->socket);
     readLong(&client->socket);
@@ -116,31 +146,32 @@ private void readLoginRequest(Client* client)
 
 private void readHandshake(Client* client)
 {
-    PACKET_DEBUG_START(0x02, "Handshake\n");
+    PACKET_DEBUG_START(0x02, "Handshake");
     readString16(&client->socket);
 }
 
 private void readChatMessage(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Chat Message\n");
-    readString16(&client->socket);
+    PACKET_DEBUG_START(0x03, "Chat Message");
+    char* message = readString16(&client->socket);
+    printf("msg: '%s'\n",message);
+    free(message);
 }
 
 private void readTimeUpdate(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Time Update\n");
+    PACKET_DEBUG_START(0x04, "Time Update");
     uint64_t ticks=readLong(&client->socket);
 
     SDL_LockMutex(client->worldLock);
     client->world.lastSyncTicks=ticks;
     client->world.lastSyncTime=SDL_GetTicks();
     SDL_UnlockMutex(client->worldLock);
-
 }
 
 private void readEntityEquipment(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Entity Equipment\n");
+    PACKET_DEBUG_START(0x05, "Entity Equipment\n");
     readInt(&client->socket);
     readShort(&client->socket);
     readShort(&client->socket);
@@ -149,22 +180,36 @@ private void readEntityEquipment(Client* client)
 
 private void readSpawnPosition(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Spawn Position\n");
+    PACKET_DEBUG_START(0x06, "Spawn Position\n");
     readInt(&client->socket);
     readInt(&client->socket);
     readInt(&client->socket);
+}
+
+private void readUseEnity(Client* client)
+{
+    PACKET_DEBUG_START(0x07, "Use Enity\n");
+    panic("TODO");
 }
 
 private void readUpdateHealth(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Update Health\n");
+    PACKET_DEBUG_START(0x08, "Update Health\n");
     readShort(&client->socket);
 }
 
-private void readPlayerPositionLook(Client* client)
+private void readRespawn(Client* client)
+{
+    PACKET_DEBUG_START(0x09, "Respawn");
+    panic("TODO");
+}
+
+// TODO
+
+private void readPlayerPositionAndLook(Client* client)
 {
 
-    PACKET_DEBUG_START(0x00, "Player Position & Look\n");
+    PACKET_DEBUG_START(0x0D, "Player Position & Look");
 
     double x=readDouble(&client->socket);
     double stance=readDouble(&client->socket);
@@ -179,7 +224,6 @@ private void readPlayerPositionLook(Client* client)
 
     SDL_LockMutex(client->worldLock);
 
-
     client->world.player.pos[0]=x+client->world.player.headOffset[0];
     client->world.player.pos[2]=y+client->world.player.headOffset[2];
     client->world.player.pos[1]=z+client->world.player.headOffset[1];
@@ -188,11 +232,6 @@ private void readPlayerPositionLook(Client* client)
     client->world.player.rot[1]=pitch/180.0*M_PI;
     client->world.player.flying=on_ground;
 
-    //SDL_Delay(100);
-    //client->world.player.on_ground=true;
-    //sendPlayerPositionAndLook(client);
-
-    //sendPlayerPositionAndLook(client);
     SDL_UnlockMutex(client->worldLock);
 
     stage =3;
@@ -201,25 +240,31 @@ private void readPlayerPositionLook(Client* client)
 
 private void readAnimation(Client* client)
 {
+
+    PACKET_DEBUG_START(0x12, "Animation");
+
     readInt(&client->socket);
     readByte(&client->socket);
 }
 
 private void readNamedEntitySpawn(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Named Entity Spawn\n");
-    int id=readInt(&client->socket);
-    char* name=readString16(&client->socket);
-    int x=readInt(&client->socket);
-    int z=readInt(&client->socket);
-    int y=readInt(&client->socket);
-    int rotation=readByte(&client->socket);
-    int pitch=readByte(&client->socket);
-    int currentItem=readShort(&client->socket);
+    PACKET_DEBUG_START(0x14, "Named Entity Spawn\n");
+
+    Player* player=calloc(sizeof(Player),1);
+
+    int eid=readInt(&client->socket);
+    player->name=readString16(&client->socket);
+    player->pos=readPositionInt(&client->socket);
+    player->rot=readRotationBytes(&client->socket);
+
+    player->currentItem=readShort(&client->socket);
 
     SDL_LockMutex(client->worldLock);
 
-    printf("%i %s connected (%i %i %i) (%i %i %i)\n",id, name,x,y,z,rotation,pitch,currentItem);
+    worldAddActor(&client->world,eid,player);
+
+    printf("%i %s connected (%f %f %f) (%f %f) %i\n",eid, player->name,player->pos[0],player->pos[1],player->pos[2],player->rot[0],player->rot[1],player->currentItem);
 
     SDL_UnlockMutex(client->worldLock);
 
@@ -227,17 +272,26 @@ private void readNamedEntitySpawn(Client* client)
 
 private void readPickupSpawn(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Pickup Spawn\n");
-    readInt(&client->socket);
-    readShort(&client->socket);
+
+    PACKET_DEBUG_START(0x15, "Pickup Spawn");
+    int eid=readInt(&client->socket);
+
+    Pickup* pickup=pickupNew();
+
+    pickup->item=readShort(&client->socket);
+    pickup->count=readByte(&client->socket);
+    pickup->data=readShort(&client->socket);
+
+    pickup->pos=readPositionInt(&client->socket);
+
+    pickup->rot=readRotationBytes(&client->socket);
     readByte(&client->socket);
-    readShort(&client->socket);
-    readInt(&client->socket);
-    readInt(&client->socket);
-    readInt(&client->socket);
-    readByte(&client->socket);
-    readByte(&client->socket);
-    readByte(&client->socket);
+
+    SDL_LockMutex(client->worldLock);
+    worldAddActor(&client->world,eid,pickup);
+    SDL_UnlockMutex(client->worldLock);
+
+
 }
 
 private void readCollectItem(Client* client)
@@ -263,19 +317,33 @@ private void readAddObject(Client* client)
         readShort(&client->socket);
         readShort(&client->socket);
     }
+
+    puts("Add Object/Vehicle");
+
 }
 
 private void readMobSpawn(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Mob Spawn\n");
-    readInt(&client->socket);
-    readByte(&client->socket);
-    readInt(&client->socket);
-    readInt(&client->socket);
-    readInt(&client->socket);
-    readByte(&client->socket);
-    readByte(&client->socket);
+
+    PACKET_DEBUG_START(0x18, "Mob Spawn\n");
+
+    Mob* mob=calloc(sizeof(Mob),1);
+
+    int eid=readInt(&client->socket);
+    mob->type=readByte(&client->socket);
+    mob->pos[0]=((int32_t)readInt(&client->socket))/32.0;
+    mob->pos[2]=((int32_t)readInt(&client->socket))/32.0;
+    mob->pos[1]=((int32_t)readInt(&client->socket))/32.0;
+    mob->rot[0]=readByte(&client->socket);
+    mob->rot[1]=readByte(&client->socket);
     readStream(&client->socket);
+
+    SDL_LockMutex(client->worldLock);
+
+    worldAddActor(&client->world,eid,mob);
+
+    SDL_UnlockMutex(client->worldLock);
+
 }
 
 private void readEntityVelocity(Client* client)
@@ -289,28 +357,61 @@ private void readEntityVelocity(Client* client)
 
 private void readDestroyEnity(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Destroy Entity\n");
-    readInt(&client->socket);
+    PACKET_DEBUG_START(0x1d, "Destroy Entity\n");
+    uint eid=readInt(&client->socket);
+
+    SDL_LockMutex(client->worldLock);
+
+    Actor* actor=worldRemoveActor(&client->world,eid);
+    free(actor);
+
+    SDL_UnlockMutex(client->worldLock);
+
 }
 
 private void readEntityRelativeMove(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Entity Relative Move\n");
-    readInt(&client->socket);
-    readByte(&client->socket);
-    readByte(&client->socket);
-    readByte(&client->socket);
+    PACKET_DEBUG_START(0x1f, "Entity Relative Move\n");
+    int eid=readInt(&client->socket);
+    Vec4f delta=readPositionDelta(&client->socket);
+    SDL_LockMutex(client->worldLock);
+
+    Actor* actor=worldGetActor(&client->world,eid);
+
+    if(actor!=NULL)
+    {
+        actor->pos+=delta;
+    }
+    else
+    {
+        printf("%i not present\n",eid);
+    }
+
+    SDL_UnlockMutex(client->worldLock);
 }
 
 private void readEntityLookAndRelativeMove(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Entity Look and Relative Move\n");
-    readInt(&client->socket);
-    readByte(&client->socket);
-    readByte(&client->socket);
-    readByte(&client->socket);
-    readByte(&client->socket);
-    readByte(&client->socket);
+    PACKET_DEBUG_START(0x20, "Entity Look and Relative Move\n");
+    int eid=readInt(&client->socket);
+
+    Vec4f delta=readPositionDelta(&client->socket);
+    Vec2f rot=readRotationBytes(&client->socket);
+
+    Actor* actor=worldGetActor(&client->world,eid);
+
+    if(actor!=NULL)
+    {
+        actor->pos+=delta;
+        actor->rot=rot;
+    }
+    else
+    {
+        printf("%i not present\n",eid);
+    }
+
+    SDL_UnlockMutex(client->worldLock);
+
 }
 
 private void readEntityTeleport(Client* client)
@@ -378,7 +479,7 @@ private void readMapChunk(Client* client)
 
     assert(sizeof(uncompressed)==uncompressed_size);
 
-    printf("map chunk: (%i %i %i) (%i %i %i)\n",x0,y0,z0,size_x,size_y,size_z);
+    //printf("map chunk: (%i %i %i) (%i %i %i)\n",x0,y0,z0,size_x,size_y,size_z);
 
     SDL_LockMutex(client->worldLock);
 
@@ -582,7 +683,7 @@ static PacketHandler* packetHandlers[]={
 
     [0x08] = readUpdateHealth,
 
-    [0x0d] = readPlayerPositionLook,
+    [0x0d] = readPlayerPositionAndLook,
 
     [0x12] = readAnimation,
 

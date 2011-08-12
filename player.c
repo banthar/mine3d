@@ -106,3 +106,7 @@ void playerTick(Client* client, Player* player)
 {
 }
 
+public Player* playerNew()
+{
+    return calloc(sizeof(Player),1);
+}
