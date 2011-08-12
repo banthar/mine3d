@@ -45,8 +45,6 @@ struct World
     uint32_t lastSyncTime;
     uint32_t drawStart;
 
-    Player player;
-
     int maxActors;
     Actor** actor;
 

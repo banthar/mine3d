@@ -7,6 +7,7 @@
 #include "worldgfx.h"
 #include "utils.h"
 #include "network.h"
+#include "player.h"
 
 #include <signal.h>
 #include "SDL.h"
@@ -54,15 +55,15 @@ private __attribute__((noreturn)) void quit(Client* client)
 private bool startDigging(Client* client)
 {
 
-    Vec4i p=worldRay(&client->world, client->world.player.pos+client->world.player.headOffset,  rotationNormal(client->world.player.rot),3);
+    Vec4i p=worldRay(&client->world, client->player->pos+client->player->headOffset,  rotationNormal(client->player->rot),3);
 
     if(p[3]==-1)
         return false;
     p[3]=1;
 
-    client->world.player.digging.on=true;
-    client->world.player.digging.start=client->time;
-    client->world.player.digging.location=p;
+    client->player->digging.on=true;
+    client->player->digging.start=client->time;
+    client->player->digging.location=p;
 
     sendPlayerDigging(client,0,p);
 
@@ -72,7 +73,7 @@ private bool startDigging(Client* client)
 private bool abortDigging(Client* client)
 {
 
-    client->world.player.digging.on=false;
+    client->player->digging.on=false;
 
     return true;
 }
@@ -80,25 +81,25 @@ private bool abortDigging(Client* client)
 private void tickDigging(Client* client)
 {
 
-    if(!client->world.player.digging.on)
+    if(!client->player->digging.on)
         return;
 
-    Vec4i location=client->world.player.digging.location;
+    Vec4i location=client->player->digging.location;
 
-    if(client->time-client->world.player.digging.lastAnimation>250)
+    if(client->time-client->player->digging.lastAnimation>250)
     {
         sendAnimation(client,client->eid,1);
-        client->world.player.digging.lastAnimation=client->time;
+        client->player->digging.lastAnimation=client->time;
     }
 
-    if(client->time-client->world.player.digging.start>1100)
+    if(client->time-client->player->digging.start>1100)
     {
 
         sendPlayerDigging(client,2,location);
 
         worldSet(&client->world,location,(Block){.id=0});
 
-        client->world.player.digging.on=false;
+        client->player->digging.on=false;
 
         startDigging(client);
 
@@ -136,6 +137,84 @@ private void drawGUI(Client* client)
     glEnd();
 
 }
+
+public bool clientEvent(Client* client, const SDL_Event* event)
+{
+
+    switch(event->type)
+    {
+        case SDL_KEYDOWN:
+            switch(event->key.keysym.sym)
+            {
+                case SDLK_f:
+                    client->player->flying=!client->player->flying;
+                    return true;
+                case SDLK_SPACE:
+                    client->player->v[2]=0.31;
+                    return true;
+                default:
+                    return false;
+            }
+        case SDL_MOUSEMOTION:
+            client->player->rot[0]+=event->motion.xrel;
+            client->player->rot[1]-=event->motion.yrel;
+            client->player->rot[1]=clampf(client->player->rot[1],0,180);
+            return false;
+        default:
+            return true;
+    }
+}
+
+
+private void playerTick(Player* player)
+{
+    //int t=SDL_GetTicks();
+    Uint8 *keys = SDL_GetKeyState(NULL);
+
+    double vx=0,vy=0;
+    double v=0.15;
+
+    if(keys[SDLK_w] || keys[SDLK_UP])
+    {
+        vy+=1;
+    }
+    if(keys[SDLK_s] || keys[SDLK_DOWN])
+    {
+        vy-=1;
+    }
+    if(keys[SDLK_a] || keys[SDLK_LEFT])
+    {
+        vx-=1;
+    }
+    if(keys[SDLK_d] || keys[SDLK_RIGHT])
+    {
+        vx+=1;
+    }
+    if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
+    {
+        v=0.1;
+    }
+
+    if(!player->flying)
+    {
+        player->v[0]=-cos(player->rot[0]/180.0*M_PI)*vx*v-sin(player->rot[0]/180.0*M_PI)*vy*v;
+        player->v[1]=-sin(player->rot[0]/180.0*M_PI)*vx*v+cos(player->rot[0]/180.0*M_PI)*vy*v;
+
+        //actorTick(world,player);
+    }
+    else
+    {
+
+        player->v[0]=sin(player->rot[0]/180.0*M_PI)*sin(player->rot[1]/180.0*M_PI)*vy*v-cos(player->rot[0]/180.0*M_PI)*vx*v;
+        player->v[1]=-cos(player->rot[0]/180.0*M_PI)*sin(player->rot[1]/180.0*M_PI)*vy*v-sin(player->rot[0]/180.0*M_PI)*vx*v;
+        player->v[2]=cos(player->rot[1]/180.0*M_PI)*vy*v;
+
+        //actorTick(world,player);
+
+    }
+
+}
+
 
 private bool handleEvent(Client* client, const SDL_Event* event)
 {
@@ -209,10 +288,10 @@ private void clientDraw(Client* client)
     //glTranslated(0,0,-3);
 
 
-    glRotatef(world->player.rot[1]*180/M_PI,1,0,0);
-    glRotatef(world->player.rot[0]*180/M_PI,0,0,1);
+    glRotatef(client->player->rot[1],1,0,0);
+    glRotatef(180.0-client->player->rot[0],0,0,1);
 
-    glTranslatev(-world->player.pos-world->player.headOffset);
+    glTranslatev(-client->player->pos-client->player->headOffset);
 
     glColor3f(1.0,1.0,1.0);
     glBegin(GL_LINES);
@@ -238,16 +317,9 @@ private void clientDraw(Client* client)
 
     //float daytime=(world->ticks%24000ull)/24000.0;
 
-    glMatrixMode(GL_MODELVIEW);
-
-    glPushMatrix();
-    glTranslatev((Vec4f){0,0,90});
-    modelDraw(client);
-    glPopMatrix();
-
     worldDraw(&client->world);
 
-    Vec4i p=worldRay(world, world->player.pos+world->player.headOffset,  rotationNormal(world->player.rot),3);
+    Vec4i p=worldRay(world, client->player->pos+client->player->headOffset,  rotationNormal(client->player->rot),3);
 
     if(p[3]!=-1)
         worldDrawSelection(world,p);
@@ -270,6 +342,7 @@ export int main(int argc, char* argv[])
         .worldLock=SDL_CreateMutex(),
         .socketLock=SDL_CreateMutex(),
         .playerName="Player56",
+        .player=playerNew(),
     };
 
     const SDL_VideoInfo* video_info=SDL_GetVideoInfo();
@@ -305,7 +378,7 @@ export int main(int argc, char* argv[])
         while(SDL_PollEvent(&event))
         {
             if(handleEvent(&client, &event))
-                worldEvent(&client.world,&event);
+                clientEvent(&client,&event);
         }
 
 
@@ -313,6 +386,8 @@ export int main(int argc, char* argv[])
 
         glClearColor(0.76,0.81,1.0,0.0);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+        playerTick(client.player);
 
         tickDigging(&client);
 

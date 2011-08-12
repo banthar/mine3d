@@ -30,6 +30,8 @@ struct Client
     SDL_mutex* socketLock;
     Socket socket;
 
+    Player* player;
+
     const char* playerName;
 
     int zombieTexture;

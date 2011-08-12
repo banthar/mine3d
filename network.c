@@ -52,13 +52,13 @@ private void sendPlayerPositionAndLook(Client* client)
     SDL_LockMutex(client->socketLock);
 
     writeByte(&client->socket,0x0d);
-    writeDouble(&client->socket,client->world.player.pos[0]-client->world.player.headOffset[0]);
-    writeDouble(&client->socket,client->world.player.pos[2]-client->world.player.headOffset[2]);
-    writeDouble(&client->socket,client->world.player.pos[2]-client->world.player.headOffset[2]+1.62);
-    writeDouble(&client->socket,client->world.player.pos[1]-client->world.player.headOffset[1]);
-    writeFloat(&client->socket,180-client->world.player.rot[0]*180/M_PI);
-    writeFloat(&client->socket,clampf(90-client->world.player.rot[1]*180/M_PI,-90,+90));
-    writeBool(&client->socket,client->world.player.flying);
+    writeDouble(&client->socket,client->player->pos[0]-client->player->headOffset[0]);
+    writeDouble(&client->socket,client->player->pos[2]-client->player->headOffset[2]);
+    writeDouble(&client->socket,client->player->pos[2]-client->player->headOffset[2]+1.62);
+    writeDouble(&client->socket,client->player->pos[1]-client->player->headOffset[1]);
+    writeFloat(&client->socket,180-client->player->rot[0]*180/M_PI);
+    writeFloat(&client->socket,clampf(90-client->player->rot[1]*180/M_PI,-90,+90));
+    writeBool(&client->socket,client->player->flying);
 
     SDL_UnlockMutex(client->socketLock);
 
@@ -118,9 +118,18 @@ private Vec4f readPositionInt(Socket* socket)
 private Vec2f readRotationBytes(Socket* socket)
 {
     Vec2f rot;
-    rot[0]=readByte(socket)/255.0;
-    rot[1]=readByte(socket)/255.0;
+    rot[0]=readByte(socket)*360.0/255.0;
+    rot[1]=readByte(socket)*360.0/255.0;
     return rot;
+}
+
+private Vec4f readVelocity(Socket* socket)
+{
+    Vec4f v;
+    v[0]=((int16_t)readShort(socket))*32000.0/200.0;
+    v[1]=((int16_t)readShort(socket))*32000.0/200.0;
+    v[2]=((int16_t)readShort(socket))*32000.0/200.0;
+    return v;
 }
 
 // Read Handlers
@@ -139,8 +148,10 @@ private void readLoginRequest(Client* client)
     readString16(&client->socket);
     readLong(&client->socket);
     readByte(&client->socket);
-
+    SDL_LockMutex(client->worldLock);
     client->eid=eid;
+    worldAddActor(&client->world,eid,client->player);
+    SDL_UnlockMutex(client->worldLock);
 
 }
 
@@ -219,18 +230,15 @@ private void readPlayerPositionAndLook(Client* client)
     float pitch=readFloat(&client->socket);
     bool on_ground=readBool(&client->socket);
 
-    printf("(%f, %f, %f) %f (%f, %f) %i\n",x,y,z,stance,yaw,pitch,on_ground);
-
-
     SDL_LockMutex(client->worldLock);
 
-    client->world.player.pos[0]=x+client->world.player.headOffset[0];
-    client->world.player.pos[2]=y+client->world.player.headOffset[2];
-    client->world.player.pos[1]=z+client->world.player.headOffset[1];
-    client->world.player.stance=stance;
-    client->world.player.rot[0]=yaw/180.0*M_PI;
-    client->world.player.rot[1]=pitch/180.0*M_PI;
-    client->world.player.flying=on_ground;
+    client->player->pos[0]=x+client->player->headOffset[0];
+    client->player->pos[2]=y+client->player->headOffset[2];
+    client->player->pos[1]=z+client->player->headOffset[1];
+    client->player->stance=stance;
+    client->player->rot[0]=yaw/180.0*M_PI;
+    client->player->rot[1]=pitch/180.0*M_PI;
+    client->player->flying=on_ground;
 
     SDL_UnlockMutex(client->worldLock);
 
@@ -257,15 +265,10 @@ private void readNamedEntitySpawn(Client* client)
     player->name=readString16(&client->socket);
     player->pos=readPositionInt(&client->socket);
     player->rot=readRotationBytes(&client->socket);
-
     player->currentItem=readShort(&client->socket);
 
     SDL_LockMutex(client->worldLock);
-
     worldAddActor(&client->world,eid,player);
-
-    printf("%i %s connected (%f %f %f) (%f %f) %i\n",eid, player->name,player->pos[0],player->pos[1],player->pos[2],player->rot[0],player->rot[1],player->currentItem);
-
     SDL_UnlockMutex(client->worldLock);
 
 }
@@ -281,9 +284,7 @@ private void readPickupSpawn(Client* client)
     pickup->item=readShort(&client->socket);
     pickup->count=readByte(&client->socket);
     pickup->data=readShort(&client->socket);
-
     pickup->pos=readPositionInt(&client->socket);
-
     pickup->rot=readRotationBytes(&client->socket);
     readByte(&client->socket);
 
@@ -291,13 +292,11 @@ private void readPickupSpawn(Client* client)
     worldAddActor(&client->world,eid,pickup);
     SDL_UnlockMutex(client->worldLock);
 
-
 }
 
 private void readCollectItem(Client* client)
 {
     PACKET_DEBUG_START(0x16,"Collect Item");
-
     readInt(&client->socket);
     readInt(&client->socket);
 }
@@ -331,28 +330,32 @@ private void readMobSpawn(Client* client)
 
     int eid=readInt(&client->socket);
     mob->type=readByte(&client->socket);
-    mob->pos[0]=((int32_t)readInt(&client->socket))/32.0;
-    mob->pos[2]=((int32_t)readInt(&client->socket))/32.0;
-    mob->pos[1]=((int32_t)readInt(&client->socket))/32.0;
-    mob->rot[0]=readByte(&client->socket);
-    mob->rot[1]=readByte(&client->socket);
+    mob->pos=readPositionInt(&client->socket);
+    mob->rot=readRotationBytes(&client->socket);
     readStream(&client->socket);
 
     SDL_LockMutex(client->worldLock);
-
     worldAddActor(&client->world,eid,mob);
-
     SDL_UnlockMutex(client->worldLock);
 
 }
 
 private void readEntityVelocity(Client* client)
 {
-    PACKET_DEBUG_START(0x00, "Entity Velocity?\n");
-    readInt(&client->socket);
-    readShort(&client->socket);
-    readShort(&client->socket);
-    readShort(&client->socket);
+    PACKET_DEBUG_START(0x1c, "Entity Velocity?\n");
+    int eid=readInt(&client->socket);
+
+    Vec4f v=readVelocity(&client->socket);
+
+    SDL_LockMutex(client->worldLock);
+    Actor* actor=worldGetActor(&client->world,eid);
+
+    assert(actor!=NULL);
+
+    actor->v=v;
+
+    SDL_UnlockMutex(client->worldLock);
+
 }
 
 private void readDestroyEnity(Client* client)
@@ -558,14 +561,14 @@ private void readMultiBlockChange(Client* client)
 private void readBlockChange(Client* client)
 {
 
-    PACKET_DEBUG_START(0x00, "Block Change\n");
+    PACKET_DEBUG_START(0x34, "Block Change\n");
     int x=readInt(&client->socket);
     int z=readByte(&client->socket);
     int y=readInt(&client->socket);
     byte id=readByte(&client->socket);
     byte metadata=readByte(&client->socket);
 
-    printf("block change %i (%i %i %i)\n",id,x,y,z);
+    //printf("block change %i (%i %i %i)\n",id,x,y,z);
 
     Block b=worldGet(&client->world,(Vec4i){x,y,z});
     b.id=id;

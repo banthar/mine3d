@@ -129,7 +129,8 @@ public void worldDraw(World *world)
 
         if(actor!=NULL)
         {
-            actorDrawBBox(actor);
+            //actorDrawBBox(actor);
+            humanDraw(actor);
         }
 
     }

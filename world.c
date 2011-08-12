@@ -199,110 +199,28 @@ public void worldSpiral(World* this, void (f)(World*,int x,int y,int z))
 
 }
 
-public bool worldEvent(World* this, const SDL_Event* event)
+public void worldScroll(World* world, Vec4f pos)
 {
-
-    switch(event->type)
-    {
-        case SDL_KEYDOWN:
-            switch(event->key.keysym.sym)
-            {
-                case SDLK_f:
-                    this->player.flying=!this->player.flying;
-                    return true;
-                case SDLK_SPACE:
-                    this->player.v[2]=0.31;
-                    return true;
-                default:
-                    return false;
-            }
-        case SDL_MOUSEMOTION:
-            this->player.rot[0]-=event->motion.xrel/100.0;
-            this->player.rot[1]-=event->motion.yrel/100.0;
-            this->player.rot[1]=clampf(this->player.rot[1],0,M_PI);
-            return false;
-        default:
-            return true;
-    }
-}
-
-private void playerTick(World* world)
-{
-    //int t=SDL_GetTicks();
-    Uint8 *keys = SDL_GetKeyState(NULL);
-
-    double vx=0,vy=0;
-    double v=0.15;
-
-    if(keys[SDLK_w] || keys[SDLK_UP])
-    {
-        vy+=1;
-    }
-    if(keys[SDLK_s] || keys[SDLK_DOWN])
-    {
-        vy-=1;
-    }
-    if(keys[SDLK_a] || keys[SDLK_LEFT])
-    {
-        vx-=1;
-    }
-    if(keys[SDLK_d] || keys[SDLK_RIGHT])
-    {
-        vx+=1;
-    }
-    if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
-    {
-        //v=0.01*world->player.pos[0];
-        v=0.1;
-    }
-
-    if(!world->player.flying)
-    {
-        world->player.v[0]=cos(world->player.rot[0])*vx*v-sin(world->player.rot[0])*vy*v;
-        world->player.v[1]=-sin(world->player.rot[0])*vx*v-cos(world->player.rot[0])*vy*v;
-
-        actorTick(world,&world->player);
-    }
-    else
-    {
-
-        world->player.v[0]=-sin(world->player.rot[0])*sin(world->player.rot[1])*vy*v+cos(world->player.rot[0])*vx*v;
-        world->player.v[1]=-cos(world->player.rot[0])*sin(world->player.rot[1])*vy*v-sin(world->player.rot[0])*vx*v;
-        world->player.v[2]=-cos(world->player.rot[1])*vy*v;
-
-        actorTick(world,&world->player);
-
-    }
-
-}
-
-public void worldTick(World* this)
-{
-
-    this->ticks=this->lastSyncTicks+(SDL_GetTicks()-this->lastSyncTime)*20/1000;
-
-    playerTick(this);
-
 
     Vec4i scroll=
     {
-        this->player.pos[0]/SEGMENT_SIZE-VIEW_RANGE/2,
-        this->player.pos[1]/SEGMENT_SIZE-VIEW_RANGE/2,
-        this->player.pos[2]/SEGMENT_SIZE-VIEW_RANGE/2,
+        pos[0]/SEGMENT_SIZE-VIEW_RANGE/2,
+        pos[1]/SEGMENT_SIZE-VIEW_RANGE/2,
+        pos[2]/SEGMENT_SIZE-VIEW_RANGE/2,
     };
 
-    if(scroll[0]!=this->scroll[0] || scroll[1]!=this->scroll[1] || scroll[2]!=this->scroll[2])
+    if(scroll[0]!=world->scroll[0] || scroll[1]!=world->scroll[1] || scroll[2]!=world->scroll[2])
     {
 
         Segment* segment[VIEW_RANGE][VIEW_RANGE][VIEW_RANGE]={};
-        Vec4i delta=scroll-this->scroll;
+        Vec4i delta=scroll-world->scroll;
 
         for(int z=0;z<VIEW_RANGE;z++)
         for(int y=0;y<VIEW_RANGE;y++)
         for(int x=0;x<VIEW_RANGE;x++)
         {
 
-            Segment* s=this->segment[z][y][x];
+            Segment* s=world->segment[z][y][x];
 
             int ix=x-delta[0];
             int iy=y-delta[1];
@@ -319,17 +237,30 @@ public void worldTick(World* this)
 
         }
 
-        memcpy(this->segment,segment,sizeof(segment));
-        this->scroll=scroll;
+        memcpy(world->segment,segment,sizeof(segment));
+        world->scroll=scroll;
 
     }
 
-    //if(this->socket!=NULL)
-    //  sendPlayerPositionAndLook(this, this->socket);
+}
 
-    //printf("ticks: %i ",SDL_GetTicks()-t);
-    //printf("segments: %i ",allocated_segments);
-    //printf("player: %f %f %f\n",this->player.pos[0],this->player.pos[1],this->player.pos[2]);
+public void worldTick(World* this)
+{
+
+    this->ticks=this->lastSyncTicks+(SDL_GetTicks()-this->lastSyncTime)*20/1000;
+
+    //playerTick(this);
+
+    for(int i=0;i<this->maxActors;i++)
+    {
+        Actor* actor=worldGetActor(this,i);
+
+        if(actor!=NULL)
+        {
+            actorTick(this,actor);
+        }
+
+    }
 
 }
 
@@ -338,8 +269,6 @@ public void worldInit(World *this)
 {
 
     *this=(World){};
-
-    this->player=(Player){.size={0.3,0.3,0.9},.headOffset={0.0,0.0,0.89}};
 
     this->scroll=(Vec4i){-VIEW_RANGE/2,-VIEW_RANGE/2,0};
 
@@ -366,16 +295,14 @@ public void worldAddActor(World* world, uint eid, Actor* actor)
 
     assert(world!=NULL && actor!=NULL && eid>0);
 
-    actor->size=(Vec4f){1,1,1};
-
     if(world->actor == NULL)
     {
-        world->actor=calloc(sizeof(Actor*),1024*4);
-        world->maxActors=1024*4;
+        world->actor=calloc(sizeof(Actor*),1024*16);
+        world->maxActors=1024*16;
     }
 
     assert(eid<world->maxActors);
-    assert(world->actor[eid]==NULL);
+    //assert(world->actor[eid]==NULL);
 
     world->actor[eid]=actor;
 

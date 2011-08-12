@@ -6,6 +6,8 @@
 
 typedef struct
 {
+    int actorType;
+    bool draw;
     Vec4f pos;
     Vec4f size;
     Vec4f v;
@@ -36,4 +38,5 @@ public void actorTick(World* world, Actor* actor);
 public void actorDrawBBox(Actor* actor);
 public Pickup* pickupNew();
 public Mob* mobNew();
+void humanDraw(Actor* actor);
 

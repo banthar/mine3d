@@ -6,7 +6,7 @@
 #include "model.h"
 
 Box playerModel={
-    {-4, -2, -6},
+    {-4, -2, 12},
     {8, 4, 12},
     {16, 16},
     5,
@@ -21,14 +21,24 @@ Box playerModel={
     }
 };
 
-
-void modelDraw(Client* client)
+void humanDraw(Actor* actor)
 {
-    glBindTexture(GL_TEXTURE_2D,client->zombieTexture);
+
+    if(!actor->draw)
+        return;
+
+    static GLuint texture=0;
+    if(texture==0)
+        texture=loadTexture("data/mob/char.png");
+
+    glBindTexture(GL_TEXTURE_2D,texture);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glTranslatev(actor->pos);
+    glRotatef(actor->rot[0],0,0,1);
     glScalef(1.0/16.0,1.0/16.0,1.0/16.0);
-
     drawBox(&playerModel);
-
+    glPopMatrix();
 }
 
 void playerTick(Client* client, Player* player)
@@ -37,5 +47,16 @@ void playerTick(Client* client, Player* player)
 
 public Player* playerNew()
 {
-    return calloc(sizeof(Player),1);
+
+    Player* player=calloc(sizeof(Player),1);
+
+    *player=(Player){
+        .actorType=777,
+        .size={0.3,0.3,0.9},
+        .headOffset={0.0,0.0,0.89},
+        .draw=false,
+    };
+
+    return player;
+
 }
