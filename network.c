@@ -56,8 +56,8 @@ private void sendPlayerPositionAndLook(Client* client)
     writeDouble(&client->socket,client->player->pos[2]-client->player->headOffset[2]);
     writeDouble(&client->socket,client->player->pos[2]-client->player->headOffset[2]+1.62);
     writeDouble(&client->socket,client->player->pos[1]-client->player->headOffset[1]);
-    writeFloat(&client->socket,180-client->player->rot[0]*180/M_PI);
-    writeFloat(&client->socket,clampf(90-client->player->rot[1]*180/M_PI,-90,+90));
+    writeFloat(&client->socket,client->player->rot[0]);
+    writeFloat(&client->socket,clampf(90-client->player->rot[1],-90,+90));
     writeBool(&client->socket,client->player->flying);
 
     SDL_UnlockMutex(client->socketLock);

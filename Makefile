@@ -12,7 +12,7 @@ release: LDFLAGS+=-flto
 
 .PHONY: run gdb debug clean
 
-debug: client server
+debug: client server model_view
 
 release: clean client server
 
@@ -28,7 +28,7 @@ clean:
 	rm -f *.o
 
 run: debug
-	./client
+	./model_view
 
 gdb: debug
 	gdb ./client --eval-command="run"
