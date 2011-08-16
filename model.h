@@ -9,6 +9,7 @@ typedef struct Box Box;
 
 struct Box
 {
+    int bone;
     Vec4f offset;
     Vec4f size;
     Vec2f textureOffset;
@@ -19,5 +20,11 @@ struct Box
     }child[];
 };
 
-public void drawBox(Box* box);
+typedef struct Model Model;
+
+struct Model
+{
+};
+
+public void drawBox(Box* boxes, Vec4f* rotations);
 

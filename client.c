@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "network.h"
 #include "player.h"
+#include "gui.h"
 
 #include <signal.h>
 #include "SDL.h"
@@ -38,9 +39,7 @@ private void initVideo(Client* client)
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-    float d=0.1;
-
-    glFrustum(-aspect*d,aspect*d,1*d,-1*d,0.1,300);
+    glScalef(1.0/aspect,1,1);
 
 }
 
@@ -288,6 +287,8 @@ private void clientDraw(Client* client)
     glPushMatrix();
 
     //glTranslated(0,0,-3);
+    float d=0.1;
+    glFrustum(-d,d,d,-d,0.1,300);
 
 
     glRotatef(client->player->rot[1],1,0,0);
@@ -310,12 +311,6 @@ private void clientDraw(Client* client)
     //actorDrawBBox(&world->player);
 
     worldTick(world,timeDelta);
-
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_ALPHA_TEST);
-    glEnable(GL_TEXTURE_2D);
-    glAlphaFunc(GL_GREATER,0.1);
 
     //float daytime=(world->ticks%24000ull)/24000.0;
 
@@ -340,7 +335,7 @@ export int main(int argc, char* argv[])
     //signal(SIGINT, SIG_DFL);
 
     Client client={
-        .window_rect=(SDL_Rect){0,0,720,480},
+        .window_rect=(SDL_Rect){0,0,854,480},
         .worldLock=SDL_CreateMutex(),
         .socketLock=SDL_CreateMutex(),
         .playerName="Player56",
@@ -400,6 +395,13 @@ export int main(int argc, char* argv[])
         SDL_UnlockMutex(client.worldLock);
 
         drawGUI(&client);
+
+        //glPushMatrix();
+        //glScalef(0.125,0.125,0.125);
+
+        guiDraw();
+
+        //glPopMatrix();
 
 /*
         glBindTexture(GL_TEXTURE_2D,screen_texture);

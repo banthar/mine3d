@@ -5,7 +5,7 @@
 
 #include <stdlib.h>
 
-public void drawBox(Box* box)
+public void drawBox(Box* box, Vec4f* rotations)
 {
 
     static const Vec4f face_mask[6][4]={
@@ -41,6 +41,15 @@ public void drawBox(Box* box)
         {box->size[1],box->size[2]},
     };
 
+    glPushMatrix();
+
+    if(box->bone>=0 && rotations!=NULL)
+    {
+        glRotatef(rotations[box->bone][2],0,0,1);
+        glRotatef(rotations[box->bone][1],0,1,0);
+        glRotatef(rotations[box->bone][0],1,0,0);
+    }
+
     glBegin(GL_QUADS);
     for(int f=0;f<6;f++)
         for(int v=0;v<4;v++)
@@ -50,16 +59,14 @@ public void drawBox(Box* box)
             glVertexf(box->offset+box->size*face_mask[f][v]);
         }
     glEnd();
-
     for(int i=0;i<box->childs;i++)
     {
         glPushMatrix();
         glTranslatev(box->child[i].offset+box->offset);
-        //glRotatef((rand()/(float)RAND_MAX-0.5)*10,0,0,1);
-        //glRotatef((rand()/(float)RAND_MAX-0.5)*10,0,1,0);
-        //glRotatef((rand()/(float)RAND_MAX-0.5)*10,1,0,0);
-        drawBox(box->child[i].box);
+        drawBox(box->child[i].box,rotations);
         glPopMatrix();
     }
+
+    glPopMatrix();
 
 }

@@ -110,6 +110,12 @@ private void worldDrawSegment(World *this,int x, int y, int z)
 public void worldDraw(World *world)
 {
 
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_ALPHA_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glAlphaFunc(GL_GREATER,0.1);
+
     glBindTexture(GL_TEXTURE_2D, world->terrain);
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);

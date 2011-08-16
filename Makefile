@@ -16,7 +16,7 @@ debug: client server model_view
 
 release: clean client server
 
-client: actor.o player.o client.o utils.o world.o block.o network.o socket.o noise.o worldgfx.o model.o
+client: actor.o player.o client.o utils.o world.o block.o network.o socket.o noise.o worldgfx.o model.o gui.o
 
 server: actor.o player.o server.o utils.o noise.o world.o block.o network.o socket.o worldgen.o model.o
 
@@ -28,7 +28,7 @@ clean:
 	rm -f *.o
 
 run: debug
-	./model_view
+	./client
 
 gdb: debug
 	gdb ./client --eval-command="run"

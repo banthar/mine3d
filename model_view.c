@@ -14,48 +14,75 @@
 
 GLuint texture;
 
-/*
-Box humanModel[]={
-    {{-4, -2,  -6},{ 8, 4, 12},{ 16, 16},5, {
-            {{4, 2, 12},1},
-
-            {{-2, 2, 10},2},
-            {{10, 2, 10},3},
-
-            {{2, 2, 0},4},
-            {{6, 2, 0},5} }},
-    {{-4, -4,   0},{ 8, 8,  8},{  0,  0}},
-    {{-2, -2, -10},{ 4, 4, 12},{ 40, 16}},
-    {{-2, -2, -10},{ 4, 4, 12},{ 40, 16}},
-    {{-2, -2, -12},{ 4, 4, 12},{  0, 16}},
-    {{-2, -2, -12},{ 4, 4, 12},{  0, 16}},
-};
-*/
 Box model={
+    0,
     {-4, -2, -6},
     {8, 4, 12},
     {16, 16},
     5,
     {
-        {{4, 2, 12},1},
+        {{4, 2, 12},&(Box){1,{-4,-4,0},{8,8,8},{0,0}}},
 
-        {{-2, 2, 10},2},
-        {{10, 2, 10},3},
+        {{-2, 2, 10},&(Box){2,{-2,-2,-10},{4,4,12},{40,16}}},
+        {{10, 2, 10},&(Box){3,{-2,-2,-10},{4,4,12},{40,16}}},
 
-        {{2, 2, 0},4},
-        {{6, 2, 0},5},
+        {{2, 2, 0},&(Box){4,{-2,-2,-12},{4,4,12},{0,16}}},
+        {{6, 2, 0},&(Box){5,{-2,-2,-12},{4,4,12},{0,16}}},
     }
 };
 
+
+
+static float f(float x)
+{
+    if(x<0.5)
+        return pow(x*x,1);
+    else
+        return pow(1-(x-2)*(x-1),1);
+}
+
 void draw()
 {
+
+    static int mode=1;
+    static float phase=0.0;
+    static Vec4f rotations[2][6];
+
+    phase+=0.05;
+
+
+    if(phase>1.0)
+    {
+
+        phase-=1.0;
+        mode=1-mode;
+
+        for(int i=0;i<lengthof(rotations[0]);i++)
+            rotations[mode][i]+=(Vec4f){random()/(float)RAND_MAX*18-9,random()/(float)RAND_MAX*18-9,random()/(float)RAND_MAX*18-9};
+
+    }
+
+
+    Vec4f rot[6];
+    Vec4f p=(Vec4f){f(phase),f(phase),f(phase),f(phase)};
+    Vec4f q=(Vec4f){1-f(phase),1-f(phase),1-f(phase),1-f(phase)};
+
+    printf("%f %f %f %f\n",phase, p[0],q[0],p[0]+q[0]);
+
+    for(int i=0;i<lengthof(rotations[0]);i++)
+    {
+        rot[i]=rotations[mode][i]*p+rotations[1-mode][i]*q;
+    }
+
+
+
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
     glBindTexture(GL_TEXTURE_2D,texture);
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glScalef(0.1,0.1,0.1);
-    drawBox(&model);
+    drawBox(&model,rot);
     glPopMatrix();
     glBindTexture(GL_TEXTURE_2D,0);
 }
@@ -63,7 +90,7 @@ void draw()
 
 void init()
 {
-    texture=loadTexture("data/mob/zombie.png");
+    texture=loadTexture("data/mob/char.png");
 }
 
 
