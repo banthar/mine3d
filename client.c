@@ -340,6 +340,12 @@ export int main(int argc, char* argv[])
         .socketLock=SDL_CreateMutex(),
         .playerName="Player56",
         .player=playerNew(),
+
+        .equipmentWindow={
+            .visible=true,
+            .frame=layouts.equipment,
+        },
+
     };
 
     client.player->draw=false;
@@ -376,8 +382,11 @@ export int main(int argc, char* argv[])
 
         while(SDL_PollEvent(&event))
         {
-            if(handleEvent(&client, &event))
-                clientEvent(&client,&event);
+            handleEvent(&client, &event) ||
+            windowEvent(&client.equipmentWindow,&event) ||
+            clientEvent(&client,&event);
+
+
         }
 
 
@@ -396,12 +405,21 @@ export int main(int argc, char* argv[])
 
         drawGUI(&client);
 
-        //glPushMatrix();
-        //glScalef(0.125,0.125,0.125);
 
-        guiDraw();
+        float scale = min(client.screen->w,client.screen->h)/240.0;
 
-        //glPopMatrix();
+        if(scale>=1)
+            scale=floor(scale);
+        else
+            scale=pow(2,floor(log2(scale)));
+
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(-client.screen->w/2/scale, client.screen->w/2/scale, client.screen->h/2/scale, -client.screen->h/2/scale, -1, 1);
+
+        windowDraw(&client.equipmentWindow);
+
+        glPopMatrix();
 
 /*
         glBindTexture(GL_TEXTURE_2D,screen_texture);

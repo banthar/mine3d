@@ -4,46 +4,19 @@
 
 static GLuint gui_texture=0;
 
-typedef struct Frame Frame;
-typedef struct Rectangle Rectangle;
-
-struct Rectangle
-{
-    Vec2f pos;
-    Vec2f size;
-};
-
-struct Frame
-{
-    Vec2f pos;
-    Vec2f size;
-    int type;
-};
-
-
-void drawFrame(Frame* frame)
+void drawBackground(const Frame* frame, int background)
 {
 
-    glBindTexture(GL_TEXTURE_2D,gui_texture);
-    //glMatrixMode(GL_MODELVIEW);
-    //glPushMatrix();
-
-    //glLoadIdentity();
-    glDisable(GL_CULL_FACE);
-
-    //glTranslatef(frame->pos[0],frame->pos[1],0);
-
-    Vec2f border={0.033,0.033};
-
+    Vec2f border={4,4};
     Vec2f texBorder={0.25,0.25};
-    Vec2f texBase={frame->type%16,frame->type/16};
+    Vec2f texBase={background%16,background/16};
 
     Vec2f vertexCoord[4]=
     {
-        frame->pos,
-        frame->pos+border,
-        frame->pos+frame->size-border,
-        frame->pos+frame->size,
+        {0,0},
+        border,
+        frame->size-border,
+        frame->size,
     };
 
     Vec2f texCoord[4]=
@@ -59,45 +32,63 @@ void drawFrame(Frame* frame)
     for(int y=0;y<3;y++)
     for(int x=0;x<3;x++)
     {
-            glTexCoord2f(texCoord[x  ][0],texCoord[3-y  ][1]);
-            glVertex2f(vertexCoord[x  ][0],vertexCoord[y  ][1]);
-            glTexCoord2f(texCoord[x+1][0],texCoord[3-y  ][1]);
-            glVertex2f(vertexCoord[x+1][0],vertexCoord[y  ][1]);
-            glTexCoord2f(texCoord[x+1][0],texCoord[3-y-1][1]);
-            glVertex2f(vertexCoord[x+1][0],vertexCoord[y+1][1]);
-            glTexCoord2f(texCoord[x  ][0],texCoord[3-y-1][1]);
-            glVertex2f(vertexCoord[x  ][0],vertexCoord[y+1][1]);
+        glTexCoord2f(texCoord[x  ][0],texCoord[y  ][1]);
+        glVertex2f(vertexCoord[x  ][0],vertexCoord[y  ][1]);
+        glTexCoord2f(texCoord[x+1][0],texCoord[y  ][1]);
+        glVertex2f(vertexCoord[x+1][0],vertexCoord[y  ][1]);
+        glTexCoord2f(texCoord[x+1][0],texCoord[y+1][1]);
+        glVertex2f(vertexCoord[x+1][0],vertexCoord[y+1][1]);
+        glTexCoord2f(texCoord[x  ][0],texCoord[y+1][1]);
+        glVertex2f(vertexCoord[x  ][0],vertexCoord[y+1][1]);
     }
 
     glEnd();
+}
 
-    /*
-    glBegin(GL_QUADS);
+void drawFrame(const Frame* frame)
+{
 
-        glTexCoordf(texCoord+(Vec2f){0,0});
-        glVertex2f(0,0);
-        glTexCoordf(texCoord+(Vec2f){1/16.0,0});
-        glVertex2f(0,frame->size[1]);
-        glTexCoordf(texCoord+(Vec2f){1/16.0,1/16.0});
-        glVertex2f(frame->size[0],frame->size[1]);
-        glTexCoordf(texCoord+(Vec2f){0,1/16.0});
-        glVertex2f(frame->size[0],0);
+    glPushMatrix();
 
-    glEnd();
-    */
+    glTranslatef(frame->pos[0],frame->pos[1],0);
 
-    //glPopMatrix();
+
+
+    switch(frame->type)
+    {
+
+        case CONTAINER:
+            {
+
+                Container* container=(Container*)frame;
+
+                if(container->background)
+                    drawBackground(frame,1);
+
+                for(int i=0;i<container->childs;i++)
+                    drawFrame(container->child[i]);
+
+            }
+            break;
+        case SLOT:
+            {
+                drawBackground(frame,2);
+            }
+            break;
+        case CANVAS:
+            {
+                drawBackground(frame,3);
+            }
+        default:
+            break;
+    }
+
+    glPopMatrix();
 
 }
 
-void guiDraw()
+public void windowDraw(Window* window)
 {
-
-    Frame frame={
-        .pos={-0.75,-0.75},
-        .size={1.5,1.5},
-        .type=0,
-    };
 
     if(gui_texture==0)
     {
@@ -105,6 +96,84 @@ void guiDraw()
         assert(gui_texture!=0);
     }
 
-    drawFrame(&frame);
+    glBindTexture(GL_TEXTURE_2D,gui_texture);
+    glDisable(GL_CULL_FACE);
+
+    drawFrame(window->frame);
 
 }
+
+public bool windowEvent(Window* window, SDL_Event* event)
+{
+    return false;
+}
+
+
+public Container equipment={
+    {CONTAINER,{-88,-86},{176,166}},
+    true,
+    false,
+    1+4+4+9*3+9+3,
+    {
+        &(Frame){SLOT,{144,36},{18,18}},
+
+        &(Frame){SLOT,{88,26},{18,18}},
+        &(Frame){SLOT,{88,26+18},{18,18}},
+        &(Frame){SLOT,{88+18,26},{18,18}},
+        &(Frame){SLOT,{88+18,26+18},{18,18}},
+
+        &(Frame){SLOT,{7,7+18*0},{18,18}},
+        &(Frame){SLOT,{7,7+18*1},{18,18}},
+        &(Frame){SLOT,{7,7+18*2},{18,18}},
+        &(Frame){SLOT,{7,7+18*3},{18,18}},
+
+        &(Frame){SLOT,{7+18*0,83},{18,18}},
+        &(Frame){SLOT,{7+18*1,83},{18,18}},
+        &(Frame){SLOT,{7+18*2,83},{18,18}},
+        &(Frame){SLOT,{7+18*3,83},{18,18}},
+        &(Frame){SLOT,{7+18*4,83},{18,18}},
+        &(Frame){SLOT,{7+18*5,83},{18,18}},
+        &(Frame){SLOT,{7+18*6,83},{18,18}},
+        &(Frame){SLOT,{7+18*7,83},{18,18}},
+        &(Frame){SLOT,{7+18*8,83},{18,18}},
+
+        &(Frame){SLOT,{7+18*0,83+18},{18,18}},
+        &(Frame){SLOT,{7+18*1,83+18},{18,18}},
+        &(Frame){SLOT,{7+18*2,83+18},{18,18}},
+        &(Frame){SLOT,{7+18*3,83+18},{18,18}},
+        &(Frame){SLOT,{7+18*4,83+18},{18,18}},
+        &(Frame){SLOT,{7+18*5,83+18},{18,18}},
+        &(Frame){SLOT,{7+18*6,83+18},{18,18}},
+        &(Frame){SLOT,{7+18*7,83+18},{18,18}},
+        &(Frame){SLOT,{7+18*8,83+18},{18,18}},
+
+        &(Frame){SLOT,{7+18*0,83+18*2},{18,18}},
+        &(Frame){SLOT,{7+18*1,83+18*2},{18,18}},
+        &(Frame){SLOT,{7+18*2,83+18*2},{18,18}},
+        &(Frame){SLOT,{7+18*3,83+18*2},{18,18}},
+        &(Frame){SLOT,{7+18*4,83+18*2},{18,18}},
+        &(Frame){SLOT,{7+18*5,83+18*2},{18,18}},
+        &(Frame){SLOT,{7+18*6,83+18*2},{18,18}},
+        &(Frame){SLOT,{7+18*7,83+18*2},{18,18}},
+        &(Frame){SLOT,{7+18*8,83+18*2},{18,18}},
+
+        &(Frame){SLOT,{7+18*0,142},{18,18}},
+        &(Frame){SLOT,{7+18*1,142},{18,18}},
+        &(Frame){SLOT,{7+18*2,142},{18,18}},
+        &(Frame){SLOT,{7+18*3,142},{18,18}},
+        &(Frame){SLOT,{7+18*4,142},{18,18}},
+        &(Frame){SLOT,{7+18*5,142},{18,18}},
+        &(Frame){SLOT,{7+18*6,142},{18,18}},
+        &(Frame){SLOT,{7+18*7,142},{18,18}},
+        &(Frame){SLOT,{7+18*8,142},{18,18}},
+
+        &(Frame){CANVAS,{26,7},{54,72}},
+        &(Frame){ICON,{125,37},{16,13}},
+        &(Frame){LABEL,{86,16},{0,0}},
+    }
+};
+
+Layouts layouts=
+{
+    .equipment=&equipment,
+};

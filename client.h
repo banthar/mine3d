@@ -6,6 +6,7 @@
 #include "SDL.h"
 
 #include "world.h"
+#include "gui.h"
 
 typedef struct Client Client;
 
@@ -35,5 +36,8 @@ struct Client
     const char* playerName;
 
     int zombieTexture;
+
+    Window equipmentWindow;
+
 
 };

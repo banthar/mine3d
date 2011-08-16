@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 typedef uint8_t byte;
+typedef unsigned int uint;
 
 #define lengthof(x) (sizeof(x)/sizeof(*(x)))
 

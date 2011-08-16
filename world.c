@@ -297,8 +297,8 @@ public void worldAddActor(World* world, uint eid, Actor* actor)
 
     if(world->actor == NULL)
     {
-        world->actor=calloc(sizeof(Actor*),1024*16);
-        world->maxActors=1024*16;
+        world->actor=calloc(sizeof(Actor*),1024*32);
+        world->maxActors=1024*32;
     }
 
     assert(eid<world->maxActors);
