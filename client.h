@@ -36,6 +36,7 @@ struct Client
     const char* playerName;
 
     int zombieTexture;
+    bool paused;
 
     Window equipmentWindow;
 

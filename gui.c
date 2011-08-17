@@ -90,6 +90,9 @@ void drawFrame(const Frame* frame)
 public void windowDraw(Window* window)
 {
 
+    if(!window->visible)
+        return;
+
     if(gui_texture==0)
     {
         gui_texture=loadTexture("gui.png");

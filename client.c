@@ -137,11 +137,47 @@ private void drawGUI(Client* client)
 
 }
 
-public bool clientEvent(Client* client, const SDL_Event* event)
+private bool gameEvent(Client* client, const SDL_Event* event)
+{
+    switch(event->type)
+    {
+        case SDL_KEYDOWN:
+            switch(event->key.keysym.sym)
+            {
+                case SDLK_e:
+                    client->paused=!client->paused;
+                    client->equipmentWindow.visible=!client->equipmentWindow.visible;
+                    return true;
+                default:
+                    return false;
+            }
+    }
+
+    return false;
+
+}
+
+public bool worldEvent(Client* client, const SDL_Event* event)
 {
 
     switch(event->type)
     {
+        case SDL_MOUSEBUTTONDOWN:
+            switch(event->button.button)
+            {
+                case 1:
+                    return startDigging(client);
+                default:
+                    return false;
+            }
+        case SDL_MOUSEBUTTONUP:
+            switch(event->button.button)
+            {
+                case 1:
+                    return abortDigging(client);
+                default:
+                    return false;
+            }
         case SDL_KEYDOWN:
             switch(event->key.keysym.sym)
             {
@@ -165,33 +201,40 @@ public bool clientEvent(Client* client, const SDL_Event* event)
 }
 
 
-private void playerTick(Player* player)
+private void playerTick(Client* client)
 {
-    //int t=SDL_GetTicks();
-    Uint8 *keys = SDL_GetKeyState(NULL);
+
+    Player* player=client->player;
 
     double vx=0,vy=0;
     double v=4.27;
 
-    if(keys[SDLK_w] || keys[SDLK_UP])
+    if(!client->paused)
     {
-        vy+=1;
-    }
-    if(keys[SDLK_s] || keys[SDLK_DOWN])
-    {
-        vy-=1;
-    }
-    if(keys[SDLK_a] || keys[SDLK_LEFT])
-    {
-        vx-=1;
-    }
-    if(keys[SDLK_d] || keys[SDLK_RIGHT])
-    {
-        vx+=1;
-    }
-    if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
-    {
-        v=0.1;
+
+        Uint8 *keys = SDL_GetKeyState(NULL);
+
+        if(keys[SDLK_w] || keys[SDLK_UP])
+        {
+            vy+=1;
+        }
+        if(keys[SDLK_s] || keys[SDLK_DOWN])
+        {
+            vy-=1;
+        }
+        if(keys[SDLK_a] || keys[SDLK_LEFT])
+        {
+            vx-=1;
+        }
+        if(keys[SDLK_d] || keys[SDLK_RIGHT])
+        {
+            vx+=1;
+        }
+        if(keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT])
+        {
+            v=0.1;
+        }
+
     }
 
     if(!player->flying)
@@ -214,8 +257,7 @@ private void playerTick(Player* player)
 
 }
 
-
-private bool handleEvent(Client* client, const SDL_Event* event)
+private bool mainEvent(Client* client, const SDL_Event* event)
 {
     switch(event->type)
     {
@@ -243,27 +285,6 @@ private bool handleEvent(Client* client, const SDL_Event* event)
                     return true;
             }
             break;
-        case SDL_MOUSEBUTTONDOWN:
-            switch(event->button.button)
-            {
-                case 1:
-                    return startDigging(client);
-                default:
-                    return false;
-            }
-        case SDL_MOUSEBUTTONUP:
-            switch(event->button.button)
-            {
-                case 1:
-                    return abortDigging(client);
-                default:
-                    return false;
-            }
-        case SDL_MOUSEMOTION:
-            if(client->grab_mouse || event->motion.state)
-                return true;
-            else
-                return false;
         case SDL_VIDEORESIZE:
             client->window_rect=(SDL_Rect){0,0,event->resize.w,event->resize.h};
             initVideo(client);
@@ -342,7 +363,7 @@ export int main(int argc, char* argv[])
         .player=playerNew(),
 
         .equipmentWindow={
-            .visible=true,
+            .visible=false,
             .frame=layouts.equipment,
         },
 
@@ -382,10 +403,16 @@ export int main(int argc, char* argv[])
 
         while(SDL_PollEvent(&event))
         {
-            handleEvent(&client, &event) ||
-            windowEvent(&client.equipmentWindow,&event) ||
-            clientEvent(&client,&event);
 
+            mainEvent(&client, &event);
+
+            gameEvent(&client,&event);
+
+            if(client.equipmentWindow.visible)
+                windowEvent(&client.equipmentWindow,&event);
+
+            if(!client.paused)
+                worldEvent(&client,&event);
 
         }
 
@@ -395,7 +422,8 @@ export int main(int argc, char* argv[])
         glClearColor(0.76,0.81,1.0,0.0);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-        playerTick(client.player);
+
+        playerTick(&client);
 
         tickDigging(&client);
 

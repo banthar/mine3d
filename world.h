@@ -64,7 +64,6 @@ public void worldUnlock(World* this);
 public void worldDestroy(World* this);
 public void worldTick(World* this, float timeDelta);
 public Vec4i worldRay(World* world, Vec4f pos0, Vec4f normal, int max_length);
-public bool worldEvent(World* this, const SDL_Event* event);
 public void worldSet(World* this, Vec4i pos, Block block);
 public Block worldGet(World* this, Vec4i pos);
 public void worldSpiral(World* this, void (f)(World*,int x,int y,int z));
