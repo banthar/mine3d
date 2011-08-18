@@ -38,7 +38,6 @@ struct Client
     int zombieTexture;
     bool paused;
 
-    Window equipmentWindow;
-
+    bool equipmentVisible;
 
 };

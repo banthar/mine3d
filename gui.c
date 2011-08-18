@@ -1,10 +1,11 @@
 
 #include "gui.h"
 #include "utils.h"
+#include "client.h"
 
 static GLuint gui_texture=0;
 
-void drawBackground(const Frame* frame, int background)
+void drawBackground(Vec2f pos, Vec2f size, int background)
 {
 
     Vec2f border={4,4};
@@ -13,10 +14,10 @@ void drawBackground(const Frame* frame, int background)
 
     Vec2f vertexCoord[4]=
     {
-        {0,0},
-        border,
-        frame->size-border,
-        frame->size,
+        pos,
+        pos+border,
+        pos+size-border,
+        pos+size,
     };
 
     Vec2f texCoord[4]=
@@ -45,64 +46,18 @@ void drawBackground(const Frame* frame, int background)
     glEnd();
 }
 
-void drawFrame(const Frame* frame)
+void drawSlot(const Slot* slot)
 {
+    drawBackground(slot->pos,slot->size,2);
+}
 
-    glPushMatrix();
-
-    glTranslatef(frame->pos[0],frame->pos[1],0);
-
-
-
-    switch(frame->type)
-    {
-
-        case CONTAINER:
-            {
-
-                Container* container=(Container*)frame;
-
-                if(container->background)
-                    drawBackground(frame,1);
-
-                for(int i=0;i<container->childs;i++)
-                    drawFrame(container->child[i]);
-
-            }
-            break;
-        case SLOT:
-            {
-                drawBackground(frame,2);
-            }
-            break;
-        case CANVAS:
-            {
-                drawBackground(frame,3);
-            }
-        default:
-            break;
-    }
-
-    glPopMatrix();
+void drawLabel(const Label* label)
+{
 
 }
 
-public void windowDraw(Window* window)
+void drawIcon(const Icon* icon)
 {
-
-    if(!window->visible)
-        return;
-
-    if(gui_texture==0)
-    {
-        gui_texture=loadTexture("gui.png");
-        assert(gui_texture!=0);
-    }
-
-    glBindTexture(GL_TEXTURE_2D,gui_texture);
-    glDisable(GL_CULL_FACE);
-
-    drawFrame(window->frame);
 
 }
 
@@ -111,72 +66,150 @@ public bool windowEvent(Window* window, SDL_Event* event)
     return false;
 }
 
+static Frame equipmentFrame={CONTAINER,{-88,-86},{176,166}};
 
-public Container equipment={
-    {CONTAINER,{-88,-86},{176,166}},
-    true,
-    false,
-    1+4+4+9*3+9+3,
-    {
-        &(Frame){SLOT,{144,36},{18,18}},
+static Slot equipmentSlots[]={
+        {{SLOT,{144,36},{18,18}}},
 
-        &(Frame){SLOT,{88,26},{18,18}},
-        &(Frame){SLOT,{88,26+18},{18,18}},
-        &(Frame){SLOT,{88+18,26},{18,18}},
-        &(Frame){SLOT,{88+18,26+18},{18,18}},
+        {{SLOT,{88,26},{18,18}}},
+        {{SLOT,{88,26+18},{18,18}}},
+        {{SLOT,{88+18,26},{18,18}}},
+        {{SLOT,{88+18,26+18},{18,18}}},
 
-        &(Frame){SLOT,{7,7+18*0},{18,18}},
-        &(Frame){SLOT,{7,7+18*1},{18,18}},
-        &(Frame){SLOT,{7,7+18*2},{18,18}},
-        &(Frame){SLOT,{7,7+18*3},{18,18}},
+        {{SLOT,{7,7+18*0},{18,18}}},
+        {{SLOT,{7,7+18*1},{18,18}}},
+        {{SLOT,{7,7+18*2},{18,18}}},
+        {{SLOT,{7,7+18*3},{18,18}}},
 
-        &(Frame){SLOT,{7+18*0,83},{18,18}},
-        &(Frame){SLOT,{7+18*1,83},{18,18}},
-        &(Frame){SLOT,{7+18*2,83},{18,18}},
-        &(Frame){SLOT,{7+18*3,83},{18,18}},
-        &(Frame){SLOT,{7+18*4,83},{18,18}},
-        &(Frame){SLOT,{7+18*5,83},{18,18}},
-        &(Frame){SLOT,{7+18*6,83},{18,18}},
-        &(Frame){SLOT,{7+18*7,83},{18,18}},
-        &(Frame){SLOT,{7+18*8,83},{18,18}},
+        {{SLOT,{7+18*0,83},{18,18}}},
+        {{SLOT,{7+18*1,83},{18,18}}},
+        {{SLOT,{7+18*2,83},{18,18}}},
+        {{SLOT,{7+18*3,83},{18,18}}},
+        {{SLOT,{7+18*4,83},{18,18}}},
+        {{SLOT,{7+18*5,83},{18,18}}},
+        {{SLOT,{7+18*6,83},{18,18}}},
+        {{SLOT,{7+18*7,83},{18,18}}},
+        {{SLOT,{7+18*8,83},{18,18}}},
 
-        &(Frame){SLOT,{7+18*0,83+18},{18,18}},
-        &(Frame){SLOT,{7+18*1,83+18},{18,18}},
-        &(Frame){SLOT,{7+18*2,83+18},{18,18}},
-        &(Frame){SLOT,{7+18*3,83+18},{18,18}},
-        &(Frame){SLOT,{7+18*4,83+18},{18,18}},
-        &(Frame){SLOT,{7+18*5,83+18},{18,18}},
-        &(Frame){SLOT,{7+18*6,83+18},{18,18}},
-        &(Frame){SLOT,{7+18*7,83+18},{18,18}},
-        &(Frame){SLOT,{7+18*8,83+18},{18,18}},
+        {{SLOT,{7+18*0,83+18},{18,18}}},
+        {{SLOT,{7+18*1,83+18},{18,18}}},
+        {{SLOT,{7+18*2,83+18},{18,18}}},
+        {{SLOT,{7+18*3,83+18},{18,18}}},
+        {{SLOT,{7+18*4,83+18},{18,18}}},
+        {{SLOT,{7+18*5,83+18},{18,18}}},
+        {{SLOT,{7+18*6,83+18},{18,18}}},
+        {{SLOT,{7+18*7,83+18},{18,18}}},
+        {{SLOT,{7+18*8,83+18},{18,18}}},
 
-        &(Frame){SLOT,{7+18*0,83+18*2},{18,18}},
-        &(Frame){SLOT,{7+18*1,83+18*2},{18,18}},
-        &(Frame){SLOT,{7+18*2,83+18*2},{18,18}},
-        &(Frame){SLOT,{7+18*3,83+18*2},{18,18}},
-        &(Frame){SLOT,{7+18*4,83+18*2},{18,18}},
-        &(Frame){SLOT,{7+18*5,83+18*2},{18,18}},
-        &(Frame){SLOT,{7+18*6,83+18*2},{18,18}},
-        &(Frame){SLOT,{7+18*7,83+18*2},{18,18}},
-        &(Frame){SLOT,{7+18*8,83+18*2},{18,18}},
+        {{SLOT,{7+18*0,83+18*2},{18,18}}},
+        {{SLOT,{7+18*1,83+18*2},{18,18}}},
+        {{SLOT,{7+18*2,83+18*2},{18,18}}},
+        {{SLOT,{7+18*3,83+18*2},{18,18}}},
+        {{SLOT,{7+18*4,83+18*2},{18,18}}},
+        {{SLOT,{7+18*5,83+18*2},{18,18}}},
+        {{SLOT,{7+18*6,83+18*2},{18,18}}},
+        {{SLOT,{7+18*7,83+18*2},{18,18}}},
+        {{SLOT,{7+18*8,83+18*2},{18,18}}},
 
-        &(Frame){SLOT,{7+18*0,142},{18,18}},
-        &(Frame){SLOT,{7+18*1,142},{18,18}},
-        &(Frame){SLOT,{7+18*2,142},{18,18}},
-        &(Frame){SLOT,{7+18*3,142},{18,18}},
-        &(Frame){SLOT,{7+18*4,142},{18,18}},
-        &(Frame){SLOT,{7+18*5,142},{18,18}},
-        &(Frame){SLOT,{7+18*6,142},{18,18}},
-        &(Frame){SLOT,{7+18*7,142},{18,18}},
-        &(Frame){SLOT,{7+18*8,142},{18,18}},
-
-        &(Frame){CANVAS,{26,7},{54,72}},
-        &(Frame){ICON,{125,37},{16,13}},
-        &(Frame){LABEL,{86,16},{0,0}},
-    }
+        {{SLOT,{7+18*0,142},{18,18}}},
+        {{SLOT,{7+18*1,142},{18,18}}},
+        {{SLOT,{7+18*2,142},{18,18}}},
+        {{SLOT,{7+18*3,142},{18,18}}},
+        {{SLOT,{7+18*4,142},{18,18}}},
+        {{SLOT,{7+18*5,142},{18,18}}},
+        {{SLOT,{7+18*6,142},{18,18}}},
+        {{SLOT,{7+18*7,142},{18,18}}},
+        {{SLOT,{7+18*8,142},{18,18}}},
 };
 
-Layouts layouts=
+
+static Frame equipmentPlayerView={CANVAS,{26,7},{54,72}};
+static Icon equipmentCraftingIcon={{ICON,{125,37},{16,13}}};
+static Label equipmentCraftingLabel={{CANVAS,{26,7},{54,72}}};
+
+public bool equipmentEvent(Client* client, SDL_Event* event)
 {
-    .equipment=&equipment,
-};
+    return true;
+}
+
+public void equipmentDraw(Client* client)
+{
+
+    glPushMatrix();
+
+    glTranslatef(equipmentFrame.pos[0],equipmentFrame.pos[1],0);
+    drawBackground((Vec2f){0,0},equipmentFrame.size,1);
+
+    for(int i=0;i<lengthof(equipmentSlots);i++)
+        drawSlot(&equipmentSlots[i]);
+
+    drawLabel(&equipmentCraftingLabel);
+    drawIcon(&equipmentCraftingIcon);
+
+    drawBackground(equipmentPlayerView.pos,equipmentPlayerView.size,3);
+
+    glPopMatrix();
+
+}
+
+private float guiScale(Client* client)
+{
+
+    float scale = min(client->screen->w,client->screen->h)/240.0;
+
+    if(scale>=1)
+        scale=floor(scale);
+    else
+        scale=pow(2,floor(log2(scale)));
+
+    return scale;
+
+}
+
+public void guiDraw(Client* client)
+{
+
+    if(gui_texture==0)
+    {
+        gui_texture=loadTexture("gui.png");
+        assert(gui_texture!=0);
+    }
+
+
+    glBindTexture(GL_TEXTURE_2D,gui_texture);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+
+    float scale=guiScale(client);
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(-client->screen->w/2/scale, client->screen->w/2/scale, client->screen->h/2/scale, -client->screen->h/2/scale, -1, 1);
+
+    equipmentDraw(client);
+
+    glPopMatrix();
+
+}
+
+public void guiEvent(Client* client,SDL_Event* event)
+{
+
+    switch(event->type)
+    {
+        case SDL_MOUSEMOTION:
+            if(!client->grab_mouse)
+            {
+                float scale=guiScale(client);
+                Vec2f mouse={event->motion.x/(float)client->screen->w,event->motion.y/(float)client->screen->h};
+                mouse-=(Vec2f){0.5,0.5};
+                mouse*=(Vec2f){scale,scale};
+
+                printf("%f %f\n",mouse[0],mouse[1]);
+            }
+            break;
+
+    }
+
+}

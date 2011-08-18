@@ -6,6 +6,14 @@
 #include "SDL.h"
 #include "math.h"
 
+typedef struct Rectangle Rectangle;
+
+struct Rectangle
+{
+    Vec2f pos;
+    Vec2f size;
+};
+
 typedef struct Frame Frame;
 typedef struct Container Container;
 typedef struct Button Button;
@@ -13,14 +21,7 @@ typedef struct Slot Slot;
 typedef struct Label Label;
 typedef struct Icon Icon;
 typedef struct ScrollBar ScrollBar;
-typedef struct Rectangle Rectangle;
 typedef struct Window Window;
-
-struct Rectangle
-{
-    Vec2f pos;
-    Vec2f size;
-};
 
 typedef enum
 {
@@ -83,12 +84,7 @@ struct Window
     const Frame* frame;
 };
 
-typedef struct
-{
-    Frame* equipment;
-}Layouts;
+typedef struct Client Client;
 
-extern Layouts layouts;
-
-public void windowDraw(Window* window);
-public bool windowEvent(Window* window, SDL_Event* event);
+public void guiDraw(Client* client);
+public void guiEvent(Client* client,SDL_Event* event);

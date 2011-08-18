@@ -146,7 +146,7 @@ private bool gameEvent(Client* client, const SDL_Event* event)
             {
                 case SDLK_e:
                     client->paused=!client->paused;
-                    client->equipmentWindow.visible=!client->equipmentWindow.visible;
+                    client->equipmentVisible=!client->equipmentVisible;
                     return true;
                 default:
                     return false;
@@ -191,9 +191,12 @@ public bool worldEvent(Client* client, const SDL_Event* event)
                     return false;
             }
         case SDL_MOUSEMOTION:
-            client->player->rot[0]+=event->motion.xrel;
-            client->player->rot[1]-=event->motion.yrel;
-            client->player->rot[1]=clampf(client->player->rot[1],0,180);
+            if(client->grab_mouse)
+            {
+                client->player->rot[0]+=event->motion.xrel;
+                client->player->rot[1]-=event->motion.yrel;
+                client->player->rot[1]=clampf(client->player->rot[1],0,180);
+            }
             return false;
         default:
             return true;
@@ -362,10 +365,6 @@ export int main(int argc, char* argv[])
         .playerName="Player56",
         .player=playerNew(),
 
-        .equipmentWindow={
-            .visible=false,
-            .frame=layouts.equipment,
-        },
 
     };
 
@@ -408,8 +407,7 @@ export int main(int argc, char* argv[])
 
             gameEvent(&client,&event);
 
-            if(client.equipmentWindow.visible)
-                windowEvent(&client.equipmentWindow,&event);
+            guiEvent(&client,&event);
 
             if(!client.paused)
                 worldEvent(&client,&event);
@@ -429,25 +427,11 @@ export int main(int argc, char* argv[])
 
         clientDraw(&client);
 
+        guiDraw(&client);
+
         SDL_UnlockMutex(client.worldLock);
 
-        drawGUI(&client);
 
-
-        float scale = min(client.screen->w,client.screen->h)/240.0;
-
-        if(scale>=1)
-            scale=floor(scale);
-        else
-            scale=pow(2,floor(log2(scale)));
-
-        glPushMatrix();
-        glLoadIdentity();
-        glOrtho(-client.screen->w/2/scale, client.screen->w/2/scale, client.screen->h/2/scale, -client.screen->h/2/scale, -1, 1);
-
-        windowDraw(&client.equipmentWindow);
-
-        glPopMatrix();
 
 /*
         glBindTexture(GL_TEXTURE_2D,screen_texture);
