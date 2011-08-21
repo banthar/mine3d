@@ -61,11 +61,6 @@ void drawIcon(const Icon* icon)
 
 }
 
-public bool windowEvent(Window* window, SDL_Event* event)
-{
-    return false;
-}
-
 /*
 public bool equipmentEvent(Client* client, SDL_Event* event)
 {
@@ -91,22 +86,41 @@ public void equipmentDraw(Client* client)
     glPopMatrix();
 
 }
+*/
 
-private float guiScale(Client* client)
+/*
+
+*/
+
+private void componentDraw(Window* window, Component* component)
 {
 
-    float scale = min(client->screen->w,client->screen->h)/240.0;
-
-    if(scale>=1)
-        scale=floor(scale);
-    else
-        scale=pow(2,floor(log2(scale)));
-
-    return scale;
+    switch(component->type)
+    {
+        case SLOT:
+            drawBackground(component->pos,component->size,2);
+            break;
+        case BUTTON:
+            drawBackground(component->pos,component->size,7);
+            break;
+        default:
+            panic("unable to draw component type='%i'",component->type);
+    }
 
 }
 
-public void guiDraw(Client* client)
+private void containerDraw(Window* window, Container* container)
+{
+    int child=container->firstChild;
+
+    while(child>=0)
+    {
+        componentDraw(window,&window->component[child].component);
+        child=window->component[child].component.nextChild;
+    }
+}
+
+public void windowDraw(Window* window)
 {
 
     if(gui_texture==0)
@@ -120,37 +134,70 @@ public void guiDraw(Client* client)
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
-    float scale=guiScale(client);
-
-    glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glLoadIdentity();
-    glOrtho(-client->screen->w/2/scale, client->screen->w/2/scale, client->screen->h/2/scale, -client->screen->h/2/scale, -1, 1);
+    glTranslatef(window->pos[0],window->pos[1],0);
 
-    equipmentDraw(client);
+    if(window->background)
+        drawBackground((Vec2f){0,0},window->size,1);
+
+    containerDraw(window,window);
 
     glPopMatrix();
 
 }
 
-public void guiEvent(Client* client,SDL_Event* event)
+private bool componentContains(Component* component, Vec2f point)
 {
 
-    switch(event->type)
-    {
-        case SDL_MOUSEMOTION:
-            if(!client->grab_mouse)
-            {
-                float scale=guiScale(client);
-                Vec2f mouse={event->motion.x/(float)client->screen->w,event->motion.y/(float)client->screen->h};
-                mouse-=(Vec2f){0.5,0.5};
-                mouse*=(Vec2f){scale,scale};
-
-                printf("%f %f\n",mouse[0],mouse[1]);
-            }
-            break;
-
-    }
+    return
+        point[0] >= component->pos[0] &&
+        point[1] >= component->pos[1] &&
+        point[0] <  component->pos[0]+component->size[0] &&
+        point[1] <  component->pos[1]+component->size[1];
 
 }
-*/
+private bool componentEvent(Window* window, int id, Event* event)
+{
+    printf("%i\n",id);
+
+    return false;
+}
+
+private bool containerEvent(Window* window, Container* container, Event* event)
+{
+
+    int child=container->firstChild;
+
+    while(child>=0)
+    {
+
+        Component* component=&window->component[child].component;
+
+        if(componentContains(component,event->mouse))
+        {
+            Event tmpEvent=*event;
+            tmpEvent.mouse-=container->pos;
+            componentEvent(window,child,&tmpEvent);
+        }
+
+        child=component->nextChild;
+    }
+
+    return false;
+}
+
+public bool windowEvent(Window* window, Event* event)
+{
+
+    if(event->type==MOUSE_MOTION || event->type==MOUSE_UP || event->type==MOUSE_DOWN)
+    {
+        Event tmpEvent=*event;
+        tmpEvent.mouse-=window->pos;
+        return containerEvent(window,window,&tmpEvent);
+    }
+    else
+    {
+        return true;
+    }
+}
+

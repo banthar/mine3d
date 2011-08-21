@@ -130,7 +130,7 @@ private Vec4f readVelocity(Socket* socket)
     v[1]=((int16_t)readShort(socket))*32000.0/200.0;
     v[2]=((int16_t)readShort(socket))*32000.0/200.0;
 
-    printf("v:(%f %f %f)\n",v[0],v[1],v[2]);
+    //printf("v:(%f %f %f)\n",v[0],v[1],v[2]);
 
     return v;
 }
@@ -353,7 +353,7 @@ private void readEntityVelocity(Client* client)
 
     PACKET_DEBUG_START(0x1c, "Entity Velocity?\n");
 
-    puts("Entity Velocity");
+    //puts("Entity Velocity");
 
     int eid=readInt(&client->socket);
 

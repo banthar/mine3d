@@ -9,6 +9,7 @@
 #include "network.h"
 #include "player.h"
 #include "gui.h"
+#include "ui.h"
 
 #include <signal.h>
 #include "SDL.h"
@@ -350,6 +351,55 @@ private void clientDraw(Client* client)
 
 }
 
+private float guiScale(Client* client)
+{
+
+    float scale = min(client->screen->w,client->screen->h)/240.0;
+
+    if(scale>=1)
+        scale=floor(scale);
+    else
+        scale=pow(2,floor(log2(scale)));
+
+    return scale;
+
+}
+
+private void guiDraw(Client* client)
+{
+
+    float scale=guiScale(client);
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(-client->screen->w/scale/2,client->screen->w/scale/2,client->screen->h/scale/2,-client->screen->h/scale/2,0 , 1);
+    windowDraw(&mainMenu);
+    glPopMatrix();
+
+}
+
+private bool guiEvent(Client* client, SDL_Event* sdlEvent)
+{
+
+    float scale=guiScale(client);
+
+    Event event;
+
+    switch(sdlEvent->type)
+    {
+        case SDL_MOUSEMOTION:
+            event.mouse[0]=(sdlEvent->motion.x-client->screen->w/2.0)/scale;
+            event.mouse[1]=(sdlEvent->motion.y-client->screen->h/2.0)/scale;
+            break;
+        default:
+            return true;
+    }
+
+    return windowEvent(&mainMenu,&event);
+
+}
+
 export int main(int argc, char* argv[])
 {
 
@@ -357,6 +407,8 @@ export int main(int argc, char* argv[])
         panic("sdl error");
 
     //signal(SIGINT, SIG_DFL);
+
+    registerSignalHandlers();
 
     Client client={
         .window_rect=(SDL_Rect){0,0,854,480},
@@ -407,7 +459,7 @@ export int main(int argc, char* argv[])
 
             gameEvent(&client,&event);
 
-            //guiEvent(&client,&event);
+            guiEvent(&client,&event);
 
             if(!client.paused)
                 worldEvent(&client,&event);
@@ -427,7 +479,8 @@ export int main(int argc, char* argv[])
 
         clientDraw(&client);
 
-        //guiDraw(&client);
+        guiDraw(&client);
+
 
         SDL_UnlockMutex(client.worldLock);
 
