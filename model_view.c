@@ -31,6 +31,23 @@ Box model={
     }
 };
 
+Vec4f rotationA[] = {
+	{0.0,0.0,8.0},
+	{8.0,0.0,0.0},
+	{30.0,0.0,0.0},
+	{-30.0,0.0,0.0},
+	{30.0,0.0,0.0},
+	{-30.0,0.0,0.0},
+};
+
+Vec4f rotationB[] = {
+	{0.0,0.0,-8.0},
+	{-8.0,0.0,0.0},
+	{-30.0,0.0,0.0},
+	{30.0,0.0,0.0},
+	{-30.0,0.0,0.0},
+	{30.0,0.0,0.0},
+};
 
 
 static float f(float x)
@@ -46,20 +63,13 @@ void draw()
 
     static int mode=1;
     static float phase=0.0;
-    static Vec4f rotations[2][6];
 
-    phase+=0.05;
+    phase+=(mode-0.5)*0.05;
 
-
-    if(phase>1.0)
+    if(phase>=1.0 || phase<0.0)
     {
-
-        phase-=1.0;
+	phase=clampf(phase,-1,1);
         mode=1-mode;
-
-        for(int i=0;i<lengthof(rotations[0]);i++)
-            rotations[mode][i]+=(Vec4f){random()/(float)RAND_MAX*18-9,random()/(float)RAND_MAX*18-9,random()/(float)RAND_MAX*18-9};
-
     }
 
 
@@ -69,9 +79,9 @@ void draw()
 
     printf("%f %f %f %f\n",phase, p[0],q[0],p[0]+q[0]);
 
-    for(int i=0;i<lengthof(rotations[0]);i++)
+    for(int i=0;i<lengthof(rotationA);i++)
     {
-        rot[i]=rotations[mode][i]*p+rotations[1-mode][i]*q;
+        rot[i]=rotationA[i]*p+rotationB[i]*q;
     }
 
 
