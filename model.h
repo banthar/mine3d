@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-#include "math.h"
+#include "vmath.h"
 
 typedef struct Box Box;
 

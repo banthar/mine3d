@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-#include "math.h"
+#include "vmath.h"
 #include "noise.h"
 #include "actor.h"
 #include "socket.h"

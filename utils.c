@@ -3,7 +3,7 @@
 
 #include "utils.h"
 
-#include "math.h"
+#include "vmath.h"
 
 #include "glew.h"
 #include "SDL.h"

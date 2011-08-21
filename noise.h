@@ -1,11 +1,11 @@
 
 #pragma once
 
-#include "math.h"
+#include "vmath.h"
 
 typedef struct
 {
-	int perm[256];
+    int perm[256];
 }Noise;
 
 public void noiseInit(Noise* noise, unsigned int seed);

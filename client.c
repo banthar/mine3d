@@ -407,7 +407,7 @@ export int main(int argc, char* argv[])
 
             gameEvent(&client,&event);
 
-            guiEvent(&client,&event);
+            //guiEvent(&client,&event);
 
             if(!client.paused)
                 worldEvent(&client,&event);
@@ -427,7 +427,7 @@ export int main(int argc, char* argv[])
 
         clientDraw(&client);
 
-        guiDraw(&client);
+        //guiDraw(&client);
 
         SDL_UnlockMutex(client.worldLock);
 

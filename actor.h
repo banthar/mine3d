@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "math.h"
+#include "vmath.h"
 #include <stdbool.h>
 
 typedef struct

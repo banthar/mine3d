@@ -3,7 +3,7 @@
 
 #include "socket.h"
 
-#include "math.h"
+#include "vmath.h"
 #include "world.h"
 #include "worldgen.h"
 

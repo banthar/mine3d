@@ -6,7 +6,7 @@
 #include "client.h"
 #include "socket.h"
 #include "world.h"
-#include "math.h"
+#include "vmath.h"
 
 #include <math.h>
 #include "SDL.h"

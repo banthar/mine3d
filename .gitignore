@@ -1,6 +1,8 @@
 server
 client
+model_view
 *.o
 data
 .geany
 .geanyprj
+*~

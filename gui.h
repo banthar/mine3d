@@ -4,7 +4,7 @@
 #include "config.h"
 
 #include "SDL.h"
-#include "math.h"
+#include "vmath.h"
 
 typedef struct Rectangle Rectangle;
 

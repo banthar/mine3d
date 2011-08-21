@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "math.h"
+#include "vmath.h"
 
 typedef struct
 {

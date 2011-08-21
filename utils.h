@@ -3,7 +3,7 @@
 
 #include <glew.h>
 
-#include "math.h"
+#include "vmath.h"
 
 public void glVertexf(Vec4f p);
 public void glVertexi(Vec4i p);
