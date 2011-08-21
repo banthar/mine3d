@@ -44,8 +44,6 @@ struct Frame
 struct Container
 {
     Frame;
-    bool background;
-    bool scroll;
     int childs;
     Frame* child[];
 };
@@ -79,8 +77,6 @@ struct Icon
 
 struct Window
 {
-    bool visible;
-    bool enabled;
     const Frame* frame;
 };
 

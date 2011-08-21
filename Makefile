@@ -16,7 +16,7 @@ debug: client server model_view
 
 release: clean client server
 
-client: actor.o player.o client.o utils.o world.o block.o network.o socket.o noise.o worldgfx.o model.o gui.o
+client: actor.o player.o client.o utils.o world.o block.o network.o socket.o noise.o worldgfx.o model.o gui.o ui.o
 
 server: actor.o player.o server.o utils.o noise.o world.o block.o network.o socket.o worldgen.o model.o
 
