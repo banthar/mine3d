@@ -106,9 +106,10 @@ struct Window
 
     Container;
     bool background;
+    Component* focus;
     union
     {
-        Component component;
+        Component;
         Container container;
         Button button;
         Slot slot;

@@ -101,7 +101,19 @@ private void componentDraw(Window* window, Component* component)
             drawBackground(component->pos,component->size,2);
             break;
         case BUTTON:
-            drawBackground(component->pos,component->size,7);
+            {
+                int background;
+
+                if(!((Button*)component)->enabled)
+                    background=8;
+                else if(window->focus==component)
+                    background=6;
+                else
+                    background=7;
+
+                drawBackground(component->pos,component->size,background);
+
+            }
             break;
         default:
             panic("unable to draw component type='%i'",component->type);
@@ -115,8 +127,8 @@ private void containerDraw(Window* window, Container* container)
 
     while(child>=0)
     {
-        componentDraw(window,&window->component[child].component);
-        child=window->component[child].component.nextChild;
+        componentDraw(window,&window->component[child]);
+        child=window->component[child].nextChild;
     }
 }
 
@@ -156,11 +168,34 @@ private bool componentContains(Component* component, Vec2f point)
         point[1] <  component->pos[1]+component->size[1];
 
 }
-private bool componentEvent(Window* window, int id, Event* event)
+
+private bool buttonEvent(Window* window, int id, Event* event)
 {
-    printf("%i\n",id);
+
+    Button* button=&window->component[id].button;
+
+    window->focus=button;
+
+    if(event->type==MOUSE_DOWN && button->enabled)
+        printf("%i\n",id);
 
     return false;
+
+}
+
+private bool componentEvent(Window* window, int id, Event* event)
+{
+
+    switch(window->component[id].type)
+    {
+        case BUTTON:
+            return buttonEvent(window,id,event);
+        default:
+            return true;
+    }
+
+    return true;
+
 }
 
 private bool containerEvent(Window* window, Container* container, Event* event)
@@ -171,7 +206,7 @@ private bool containerEvent(Window* window, Container* container, Event* event)
     while(child>=0)
     {
 
-        Component* component=&window->component[child].component;
+        Component* component=&window->component[child];
 
         if(componentContains(component,event->mouse))
         {
@@ -188,6 +223,11 @@ private bool containerEvent(Window* window, Container* container, Event* event)
 
 public bool windowEvent(Window* window, Event* event)
 {
+
+    //printf("event: %i\n",event->type);
+
+    if(event->type==MOUSE_MOTION)
+        window->focus=NULL;
 
     if(event->type==MOUSE_MOTION || event->type==MOUSE_UP || event->type==MOUSE_DOWN)
     {

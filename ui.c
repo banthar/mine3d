@@ -6,18 +6,20 @@
 Window mainMenu={
     {{CONTAINER,{-120,-120},{240,240}},0},
     false,
+    NULL,
     {
-        {.button={{BUTTON,{20,108},{200,20},1}}},
-        {.button={{BUTTON,{20,132},{200,20},2}}},
-        {.button={{BUTTON,{20,156},{200,20},3}}},
-        {.button={{BUTTON,{20,192},{100,20},4}}},
-        {.button={{BUTTON,{122,192},{100,20},-1}}},
+        {.button={{BUTTON,{20,108},{200,20},1},false,"Singleplayer"}},
+        {.button={{BUTTON,{20,132},{200,20},2},true,"Multiplayer"}},
+        {.button={{BUTTON,{20,156},{200,20},3},false,"Mods and Texture Packs"}},
+        {.button={{BUTTON,{20,192},{100,20},4},false,"Options"}},
+        {.button={{BUTTON,{122,192},{100,20},-1},true,"Quit Game"}},
     }
 };
 
 Window equipment={
     {{CONTAINER,{-88,-86},{176,166}},0},
     true,
+    NULL,
     {
         {.slot={{SLOT,{144,36},{18,18},1},true,NULL}},
         {.slot={{SLOT,{88,26},{18,18},2},true,NULL}},

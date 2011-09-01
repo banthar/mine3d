@@ -389,8 +389,14 @@ private bool guiEvent(Client* client, SDL_Event* sdlEvent)
     switch(sdlEvent->type)
     {
         case SDL_MOUSEMOTION:
+            event.type=MOUSE_MOTION;
             event.mouse[0]=(sdlEvent->motion.x-client->screen->w/2.0)/scale;
             event.mouse[1]=(sdlEvent->motion.y-client->screen->h/2.0)/scale;
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            event.type=MOUSE_DOWN;
+            event.mouse[0]=(sdlEvent->button.x-client->screen->w/2.0)/scale;
+            event.mouse[1]=(sdlEvent->button.y-client->screen->h/2.0)/scale;
             break;
         default:
             return true;
