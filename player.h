@@ -25,6 +25,6 @@ struct Player
 
 };
 
-public Player* playerNew();
+public Player* playerNew(void);
 void modelDraw(Client* client);
 //void playerTick(Client* client, Player* player);

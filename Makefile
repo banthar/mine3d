@@ -7,7 +7,7 @@ LDFLAGS:=-lm `pkg-config --libs $(PACKAGES)` -lz -lSDL_image
 debug: CFLAGS+=-g -Wall -DDEBUG
 debug: LDFLAGS+=-g -lstd
 
-release: CFLAGS+=-O3 -flto -Werror -Wall
+release: CFLAGS+=-O3 -flto -fwhole-program -Werror -Wall
 release: LDFLAGS+=-flto
 
 .PHONY: run gdb debug clean

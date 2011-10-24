@@ -414,7 +414,7 @@ export int main(int argc, char* argv[])
 
     //signal(SIGINT, SIG_DFL);
 
-    registerSignalHandlers();
+    //registerSignalHandlers();
 
     Client client={
         .window_rect=(SDL_Rect){0,0,854,480},
@@ -485,7 +485,7 @@ export int main(int argc, char* argv[])
 
         clientDraw(&client);
 
-        guiDraw(&client);
+        //guiDraw(&client);
 
 
         SDL_UnlockMutex(client.worldLock);

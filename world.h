@@ -67,8 +67,9 @@ public Vec4i worldRay(World* world, Vec4f pos0, Vec4f normal, int max_length);
 public void worldSet(World* this, Vec4i pos, Block block);
 public Block worldGet(World* this, Vec4i pos);
 public void worldSpiral(World* this, void (f)(World*,int x,int y,int z));
-public Segment* newSegment();
+public Segment* newSegment(void);
 
 public void worldAddActor(World* world, uint eid, Actor* actor);
 public Actor* worldRemoveActor(World* world, uint eid);
 public Actor* worldGetActor(World* world, uint eid);
+

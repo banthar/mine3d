@@ -84,13 +84,13 @@ public void worldSet(World* this, Vec4i pos, Block block)
         segment=newSegment();
         this->segment[global[2]][global[1]][global[0]]=segment;
     }
-/*
+
     for(int z=-1;z<=+1;z++)
     for(int y=-1;y<=+1;y++)
     for(int x=-1;x<=+1;x++)
         worldTouch(this,pos+(Vec4i){z,y,x});
-*/
-    segment->rendered=false;
+
+    //segment->rendered=false;
 
     if(block.id!=0)
         segment->empty=false;

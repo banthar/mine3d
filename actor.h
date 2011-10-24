@@ -42,8 +42,8 @@ typedef struct World World;
 
 public void actorTick(World* world, Actor* actor, float timeDelta);
 public void actorDrawBBox(Actor* actor);
-public Pickup* pickupNew();
-public Mob* mobNew();
-public Vehicle* vehicleNew();
+public Pickup* pickupNew(void);
+public Mob* mobNew(void);
+public Vehicle* vehicleNew(void);
 void humanDraw(Actor* actor);
 
