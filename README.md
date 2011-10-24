@@ -21,10 +21,10 @@
 
 **Screenshoots:**
 
- !doc/screen01.png:doc/screen01.png
- !doc/screen02.png:doc/screen02.png
- !doc/screen03.png:doc/screen03.png
-
+ ![01](doc/screen01.png)
+ ![02](doc/screen02.png)
+ ![03](doc/screen03.png)
+ 
 **Instalation:**
 
     export CC=gcc-4.6 make release
