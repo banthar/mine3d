@@ -21,9 +21,9 @@
 
 **Screenshoots:**
 
- ![01](doc/screen01.png)
- ![02](doc/screen02.png)
- ![03](doc/screen03.png)
+ ![01](http://i.imgur.com/NXRa9.png)
+ ![02](http://i.imgur.com/it1nb.png)
+ ![03](http://i.imgur.com/kxlOI.png)
  
 **Instalation:**
 
