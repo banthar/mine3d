@@ -19,6 +19,12 @@
  * gui
  * digging and building
 
+**Screenshoots:**
+
+ !doc/screen01.png:doc/screen01.png
+ !doc/screen02.png:doc/screen02.png
+ !doc/screen03.png:doc/screen03.png
+
 **Instalation:**
 
     export CC=gcc-4.6 make release
